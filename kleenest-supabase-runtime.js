@@ -16,6 +16,76 @@
     return window.KleenestSupabase.session();
   };
 
+  window.KleenestRuntime.signIn = function (email, password) {
+    if (!ready()) return Promise.reject(new Error('Supabase is not ready.'));
+    return window.KleenestSupabase.signIn(email, password);
+  };
+
+  window.KleenestRuntime.signUp = function (email, password, metadata) {
+    if (!ready()) return Promise.reject(new Error('Supabase is not ready.'));
+    return window.KleenestSupabase.signUp(email, password, metadata || {});
+  };
+
+  window.KleenestRuntime.signOut = function () {
+    if (!ready()) return Promise.reject(new Error('Supabase is not ready.'));
+    return window.KleenestSupabase.signOut();
+  };
+
+  function mapAuthUser(user, profile) {
+    if (!user) return null;
+    return {
+      id: user.id,
+      email: user.email || '',
+      displayName: profile?.display_name || profile?.username || user.user_metadata?.display_name || user.email?.split('@')[0] || 'Kleenest user',
+      username: profile?.username || user.user_metadata?.username || '',
+      avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url || '',
+      role: profile?.role || 'user',
+      subscriptionTier: profile?.subscription_tier || 'free',
+      points: Number(profile?.points || 0),
+      level: Number(profile?.level || 1),
+      streak: Number(profile?.streak || 0),
+      totalCheckIns: Number(profile?.total_check_ins || 0),
+      totalReviews: Number(profile?.total_reviews || 0),
+      isBusinessUser: !!profile?.is_business_user,
+      isAdmin: !!profile?.is_admin,
+      source: 'supabase'
+    };
+  }
+
+  async function syncSession() {
+    if (!ready()) return null;
+    try {
+      const session = await window.KleenestSupabase.session();
+      const profile = session ? await window.KleenestSupabase.profile() : null;
+      const user = mapAuthUser(session?.user, profile);
+
+      if (typeof state !== 'undefined') {
+        state.session = user;
+        if (typeof render === 'function') render();
+      }
+
+      window.KleenestRuntime.session = session;
+      window.KleenestRuntime.user = user;
+      window.dispatchEvent(new CustomEvent('kleenest:auth-changed', { detail: { session, user } }));
+      return session;
+    } catch (err) {
+      console.warn('Kleenest Supabase session sync failed:', err);
+      return null;
+    }
+  }
+
+  window.KleenestRuntime.syncSession = syncSession;
+
+  function installAuthListener() {
+    if (!ready() || window.KleenestRuntime.__authListenerInstalled) return false;
+    window.KleenestRuntime.__authListenerInstalled = true;
+    window.KleenestSupabase.client().auth.onAuthStateChange(function (_event, session) {
+      window.KleenestRuntime.session = session;
+      setTimeout(syncSession, 0);
+    });
+    return true;
+  }
+
   function mapLocation(row) {
     return {
       id: String(row.id),
@@ -76,6 +146,12 @@
   let attempts = 0;
   const timer = setInterval(() => {
     attempts += 1;
+    if (!ready()) return;
+    installAuthListener();
+    if (!window.KleenestRuntime.__initialSessionSync) {
+      window.KleenestRuntime.__initialSessionSync = true;
+      syncSession();
+    }
     if (installMapBridge() || attempts >= 100) clearInterval(timer);
   }, 25);
 
