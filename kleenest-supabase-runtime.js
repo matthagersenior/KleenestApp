@@ -39,28 +39,26 @@
   }
 
   function mergeSupabaseLocations(rows) {
-    if (!Array.isArray(rows) || !Array.isArray(window.state?.restrooms)) return;
+    if (!Array.isArray(rows) || typeof state === 'undefined' || !Array.isArray(state.restrooms)) return;
     const incoming = rows.map(mapLocation).filter(r => Number.isFinite(r.lat) && Number.isFinite(r.lng));
     if (!incoming.length) return;
 
-    const existing = new Map(window.state.restrooms.map(r => [String(r.id), r]));
+    const existing = new Map(state.restrooms.map(r => [String(r.id), r]));
     incoming.forEach(r => {
       const prior = existing.get(r.id);
-      if (prior) {
-        Object.assign(prior, r);
-      } else {
-        existing.set(r.id, r);
-      }
+      if (prior) Object.assign(prior, r);
+      else existing.set(r.id, r);
     });
-    window.state.restrooms = Array.from(existing.values());
-    if (typeof window.render === 'function') window.render();
+    state.restrooms = Array.from(existing.values());
+    if (typeof render === 'function') render();
   }
 
   function installMapBridge() {
     if (!ready()) return false;
-    if (!window.loadRestroomsForLocation || window.loadRestroomsForLocation.__supabaseWrapped) return true;
+    if (typeof loadRestroomsForLocation !== 'function') return false;
+    if (loadRestroomsForLocation.__supabaseWrapped) return true;
 
-    const legacyLoad = window.loadRestroomsForLocation;
+    const legacyLoad = loadRestroomsForLocation;
     async function wrappedLoad(latitude, longitude, accuracy) {
       const legacyPromise = Promise.resolve().then(() => legacyLoad(latitude, longitude, accuracy));
       const supabasePromise = window.KleenestSupabase.nearbyLocations(latitude, longitude, 15000, 100)
@@ -75,8 +73,6 @@
     return true;
   }
 
-  // The legacy app defines DB/state/functions in a later inline script. Poll briefly
-  // so this bridge attaches after those definitions without rewriting index.html.
   let attempts = 0;
   const timer = setInterval(() => {
     attempts += 1;
