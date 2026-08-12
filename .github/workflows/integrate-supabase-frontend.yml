@@ -28,6 +28,7 @@ jobs:
               '<script src="kleenest-supabase-runtime.js"></script>',
               '<script src="kleenest-actions.js"></script>',
               '<script src="kleenest-rewards.js"></script>',
+              '<script src="kleenest-rewards-history.js"></script>',
               '<script src="kleenest-reviews.js"></script>',
               '<script src="kleenest-promotions.js"></script>',
               '<script src="kleenest-account.js"></script>',
@@ -50,7 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in supabase-client.js kleenest-supabase-runtime.js kleenest-actions.js kleenest-rewards.js kleenest-reviews.js kleenest-promotions.js kleenest-account.js kleenest-business.js kleenest-business-management.js kleenest-ui-integration.js; do
+          for f in supabase-client.js kleenest-supabase-runtime.js kleenest-actions.js kleenest-rewards.js kleenest-rewards-history.js kleenest-reviews.js kleenest-promotions.js kleenest-account.js kleenest-business.js kleenest-business-management.js kleenest-ui-integration.js; do
             test -s "$f"
             node --check "$f"
           done
@@ -62,9 +63,9 @@ jobs:
           text = Path('index.html').read_text(encoding='utf-8')
           required = [
               'supabase-client.js', 'kleenest-supabase-runtime.js', 'kleenest-actions.js',
-              'kleenest-rewards.js', 'kleenest-reviews.js', 'kleenest-promotions.js',
-              'kleenest-account.js', 'kleenest-business.js', 'kleenest-business-management.js',
-              'kleenest-ui-integration.js'
+              'kleenest-rewards.js', 'kleenest-rewards-history.js', 'kleenest-reviews.js',
+              'kleenest-promotions.js', 'kleenest-account.js', 'kleenest-business.js',
+              'kleenest-business-management.js', 'kleenest-ui-integration.js'
           ]
           missing = [name for name in required if f'src="{name}"' not in text]
           if missing:
