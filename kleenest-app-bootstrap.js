@@ -6,6 +6,7 @@
     if(started)return;
     started=true;
     try{
+      window.KleenestNavigation?.init?.();
       if(window.KleenestUI?.refreshLiveState) await window.KleenestUI.refreshLiveState('app-bootstrap');
       window.dispatchEvent(new CustomEvent('kleenest:app-ready',{detail:{timestamp:Date.now()}}));
     }catch(error){
