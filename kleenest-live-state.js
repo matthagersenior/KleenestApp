@@ -7,8 +7,11 @@
     pending=(async()=>{
       const detail={reason:reason||'refresh'};
       try{
-        if(typeof ui.loadBusinessState==='function') await ui.loadBusinessState(detail.reason);
-        if(typeof ui.loadAccountState==='function') await ui.loadAccountState(detail.reason);
+        const jobs=[];
+        if(typeof ui.loadBusinessState==='function')jobs.push(ui.loadBusinessState(detail.reason));
+        if(typeof ui.loadAccountState==='function')jobs.push(ui.loadAccountState(detail.reason));
+        if(typeof ui.loadRewardsHistory==='function')jobs.push(ui.loadRewardsHistory(detail.reason));
+        await Promise.allSettled(jobs);
         window.dispatchEvent(new CustomEvent('kleenest:live-state-refreshed',{detail}));
         return detail;
       }finally{pending=null;}
