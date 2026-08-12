@@ -8,11 +8,15 @@
   async function handle(el){const action=el.dataset.kleenestAction;if(action==='signout')return run(el,()=>KleenestRuntime.signOut());if(action==='notification-read')return run(el,()=>KleenestActions.markNotificationRead(el.dataset.notificationId));if(action==='redeem-promotion')return run(el,()=>KleenestActions.redeemPromotion(el.dataset.promotionId,el.dataset.locationId));if(action==='reply-review')return run(el,()=>KleenestActions.replyToReview(el.dataset.reviewId,el.dataset.reply||''));if(action==='checkin')return run(el,()=>KleenestActions.checkIn(el.dataset.qrCode,Number(el.dataset.latitude),Number(el.dataset.longitude)));}
   document.addEventListener('click',function(event){const el=event.target.closest?.('[data-kleenest-action]');if(el)handle(el).catch(function(){});});
   async function loadRewardsHistory(reason){if(!window.KleenestRewardsHistory?.load||!window.KleenestSupabase?.session)return null;try{const session=await window.KleenestSupabase.session();if(!session)return null;const result=await window.KleenestRewardsHistory.load(50);emit('kleenest:rewards-history-refreshed',{reason:reason||'manual',result});return result;}catch(error){emit('kleenest:action-error',{action:'rewards-history',error});return null;}}
+  async function loadAccountState(reason){if(!window.KleenestAccount?.loadState||!window.KleenestSupabase?.session)return null;try{const session=await window.KleenestSupabase.session();if(!session)return null;const result=await window.KleenestAccount.loadState();emit('kleenest:account-state-refreshed',{reason:reason||'manual',result});return result;}catch(error){emit('kleenest:action-error',{action:'account-state',error});return null;}}
+  async function refreshLiveState(reason){await Promise.allSettled([loadRewardsHistory(reason),loadAccountState(reason)]);}
   window.KleenestUI.loadRewardsHistory=loadRewardsHistory;
-  window.addEventListener('kleenest:rewards-updated',function(){loadRewardsHistory('rewards-updated');});
-  window.addEventListener('kleenest:auth-ready',function(){loadRewardsHistory('auth-ready');});
-  window.addEventListener('kleenest:auth-state-changed',function(){loadRewardsHistory('auth-state-changed');});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){loadRewardsHistory('page-load');});else loadRewardsHistory('page-load');
+  window.KleenestUI.loadAccountState=loadAccountState;
+  window.KleenestUI.refreshLiveState=refreshLiveState;
+  window.addEventListener('kleenest:rewards-updated',function(){refreshLiveState('rewards-updated');});
+  window.addEventListener('kleenest:auth-ready',function(){refreshLiveState('auth-ready');});
+  window.addEventListener('kleenest:auth-state-changed',function(){refreshLiveState('auth-state-changed');});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){refreshLiveState('page-load');});else refreshLiveState('page-load');
   document.addEventListener('click',async function(event){
     const el=event.target.closest?.('[data-checkin]');if(!el||el.dataset.kleenestMigrated==='1'||!window.KleenestRuntime?.supabaseReady?.())return;
     const user=typeof currentUser==='function'?currentUser():null;const location=typeof selected!=='undefined'?selected:null;if(!user||!location?.id)return;
