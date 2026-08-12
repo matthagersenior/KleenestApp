@@ -1,0 +1,49 @@
+name: Integrate Supabase frontend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inject Supabase scripts into index.html
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          text = p.read_text(encoding='utf-8')
+          marker = 'supabase-client.js'
+          if marker in text:
+              print('Supabase scripts already present; nothing to do.')
+              raise SystemExit(0)
+
+          needle = '</head>'
+          if needle not in text:
+              raise SystemExit('Could not find </head> in index.html')
+
+          scripts = '''\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="supabase-client.js"></script>\n<script src="kleenest-supabase-runtime.js"></script>\n'''
+          p.write_text(text.replace(needle, scripts + needle, 1), encoding='utf-8')
+          print('Injected Supabase scripts.')
+
+      - name: Commit and push integration
+        shell: bash
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No integration changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Wire Kleenest frontend to Supabase bridge"
+          git push
