@@ -1,0 +1,45 @@
+name: Protect full Kleenest frontend
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  restore-if-truncated:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect and restore truncated index
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f index.html ]; then
+            echo 'index.html is missing; restoring known-good version.'
+            git checkout 7ffd4895a9bbcd546f7316eb8ec46230e4062f36 -- index.html
+          else
+            lines=$(wc -l < index.html | tr -d ' ')
+            bytes=$(wc -c < index.html | tr -d ' ')
+            echo "index.html: ${lines} lines, ${bytes} bytes"
+            # The known-good Kleenest app is a large single-file application.
+            # A tiny/truncated file is never an intentional migration state.
+            if [ "$lines" -lt 1000 ] || [ "$bytes" -lt 100000 ]; then
+              git checkout 7ffd4895a9bbcd546f7316eb8ec46230e4062f36 -- index.html
+            else
+              echo 'index.html size looks healthy; no restore needed.'
+              exit 0
+            fi
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Restore complete Kleenest frontend' || exit 0
+          git push
