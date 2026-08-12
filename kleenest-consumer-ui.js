@@ -1,0 +1,6 @@
+/* Kleenest consumer UI controller. Extracted from the integration bridge so consumer actions can evolve independently. */
+(function(){'use strict';window.KleenestConsumerUI=window.KleenestConsumerUI||{};
+function run(el,fn){if(el){el.disabled=true;el.setAttribute('aria-busy','true');}return Promise.resolve().then(fn).catch(error=>{window.dispatchEvent(new CustomEvent('kleenest:action-error',{detail:{action:el?.dataset?.kleenestAction||'',error}}));throw error;}).finally(()=>{if(el){el.disabled=false;el.setAttribute('aria-busy','false');}});}
+function handle(el){const a=el.dataset.kleenestAction,p=el.dataset;if(a==='signout')return run(el,()=>KleenestRuntime.signOut());if(a==='notification-read')return run(el,()=>KleenestActions.markNotificationRead(p.notificationId));if(a==='redeem-promotion')return run(el,()=>KleenestActions.redeemPromotion(p.promotionId,p.locationId));if(a==='reply-review')return run(el,()=>KleenestActions.replyToReview(p.reviewId,p.reply||''));if(a==='checkin')return run(el,()=>KleenestActions.checkIn(p.qrCode,Number(p.latitude),Number(p.longitude)));return null;}
+window.KleenestConsumerUI.handle=handle;window.KleenestConsumerUI.run=run;document.addEventListener('click',e=>{const el=e.target.closest?.('[data-kleenest-action]');if(el)handle(el)?.catch(()=>{});});
+})();
