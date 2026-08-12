@@ -33,26 +33,26 @@ jobs:
               '<script src="kleenest-account.js"></script>',
               '<script src="kleenest-business.js"></script>',
               '<script src="kleenest-business-management.js"></script>',
+              '<script src="kleenest-ui-integration.js"></script>',
           ]
           missing = [s for s in scripts if s not in text]
           if not missing:
               print('All Supabase feature scripts already present; nothing to do.')
               raise SystemExit(0)
-
           needle = '</head>'
           if needle not in text:
               raise SystemExit('Could not find </head> in index.html')
-
           block = '\n' + '\n'.join(missing) + '\n'
           p.write_text(text.replace(needle, block + needle, 1), encoding='utf-8')
           print(f'Injected {len(missing)} missing Supabase feature scripts.')
 
-      - name: Validate script files exist
+      - name: Validate script files exist and JavaScript parses
         shell: bash
         run: |
           set -euo pipefail
-          for f in supabase-client.js kleenest-supabase-runtime.js kleenest-actions.js kleenest-rewards.js kleenest-reviews.js kleenest-promotions.js kleenest-account.js kleenest-business.js kleenest-business-management.js; do
+          for f in supabase-client.js kleenest-supabase-runtime.js kleenest-actions.js kleenest-rewards.js kleenest-reviews.js kleenest-promotions.js kleenest-account.js kleenest-business.js kleenest-business-management.js kleenest-ui-integration.js; do
             test -s "$f"
+            node --check "$f"
           done
 
       - name: Commit and push integration
@@ -65,5 +65,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Wire Kleenest frontend to Supabase feature layers"
+          git commit -m "Wire Kleenest UI integration bridge"
           git push
