@@ -16,24 +16,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject Supabase scripts into index.html
+      - name: Inject Supabase feature scripts into index.html
         shell: python
         run: |
           from pathlib import Path
           p = Path('index.html')
           text = p.read_text(encoding='utf-8')
-          marker = 'supabase-client.js'
-          if marker in text:
-              print('Supabase scripts already present; nothing to do.')
+          scripts = [
+              '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',
+              '<script src="supabase-client.js"></script>',
+              '<script src="kleenest-supabase-runtime.js"></script>',
+              '<script src="kleenest-actions.js"></script>',
+              '<script src="kleenest-rewards.js"></script>',
+              '<script src="kleenest-reviews.js"></script>',
+              '<script src="kleenest-promotions.js"></script>',
+              '<script src="kleenest-account.js"></script>',
+              '<script src="kleenest-business.js"></script>',
+              '<script src="kleenest-business-management.js"></script>',
+          ]
+          missing = [s for s in scripts if s not in text]
+          if not missing:
+              print('All Supabase feature scripts already present; nothing to do.')
               raise SystemExit(0)
 
           needle = '</head>'
           if needle not in text:
               raise SystemExit('Could not find </head> in index.html')
 
-          scripts = '''\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script src="supabase-client.js"></script>\n<script src="kleenest-supabase-runtime.js"></script>\n'''
-          p.write_text(text.replace(needle, scripts + needle, 1), encoding='utf-8')
-          print('Injected Supabase scripts.')
+          block = '\n' + '\n'.join(missing) + '\n'
+          p.write_text(text.replace(needle, block + needle, 1), encoding='utf-8')
+          print(f'Injected {len(missing)} missing Supabase feature scripts.')
+
+      - name: Validate script files exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in supabase-client.js kleenest-supabase-runtime.js kleenest-actions.js kleenest-rewards.js kleenest-reviews.js kleenest-promotions.js kleenest-account.js kleenest-business.js kleenest-business-management.js; do
+            test -s "$f"
+          done
 
       - name: Commit and push integration
         shell: bash
@@ -45,5 +65,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Wire Kleenest frontend to Supabase bridge"
+          git commit -m "Wire Kleenest frontend to Supabase feature layers"
           git push
