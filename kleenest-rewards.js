@@ -3,6 +3,11 @@
   'use strict';
   window.KleenestRewards = window.KleenestRewards || {};
 
+  window.KleenestRewards.lastCheckIn = function () {
+    try { return JSON.parse(sessionStorage.getItem('kleenest:last-checkin') || 'null'); }
+    catch (_) { return null; }
+  };
+
   window.KleenestRewards.syncCheckin = async function (checkinId) {
     if (!checkinId) throw new Error('A check-in ID is required.');
     if (!window.KleenestSupabase?.client) throw new Error('Supabase is not ready.');
@@ -16,6 +21,9 @@
 
     const result = data || {};
     const profile = result.profile || {};
+    const checkIn = result.check_in || { id: checkinId };
+    try { sessionStorage.setItem('kleenest:last-checkin', JSON.stringify(checkIn)); } catch (_) {}
+
     const user = {
       id: session.user.id,
       points: Number(profile.points || 0),
@@ -34,7 +42,7 @@
     }
 
     window.dispatchEvent(new CustomEvent('kleenest:rewards-updated', {
-      detail: { checkIn: result.check_in || null, profile: user, transactions: result.point_transactions || [], newBadges: result.new_badges || [] }
+      detail: { checkIn, profile: user, transactions: result.point_transactions || [], newBadges: result.new_badges || [] }
     }));
     if (typeof render === 'function') render();
     return result;
