@@ -13,7 +13,23 @@
 
   window.KleenestPromotions.redeem = async function (promotionId, locationId) {
     await auth();
-    return window.KleenestRuntime.redeemPromotion(promotionId, locationId || null);
+    const redemption=await window.KleenestRuntime.redeemPromotion(promotionId, locationId || null);
+    if(!redemption?.id) return redemption;
+    return window.KleenestPromotions.syncRedemption(redemption.id);
+  };
+
+  window.KleenestPromotions.syncRedemption = async function (redemptionId) {
+    await auth();
+    const {data,error}=await client().rpc('promotion_redemption_rewards_summary',{p_redemption_id:redemptionId});
+    if(error) throw error;
+    const result=data||{};
+    const profile=result.profile||{};
+    const user={id:(await window.KleenestSupabase.session()).user.id,points:Number(profile.points||0),level:Number(profile.level||1),streak:Number(profile.streak||0),totalCheckIns:Number(profile.total_check_ins||0),totalReviews:Number(profile.total_reviews||0),source:'supabase'};
+    if(window.KleenestRuntime) window.KleenestRuntime.user=Object.assign({},window.KleenestRuntime.user||{},user);
+    if(typeof state!=='undefined'&&state.session) state.session=Object.assign({},state.session,user);
+    window.dispatchEvent(new CustomEvent('kleenest:promotion-redeemed',{detail:{redemption:result.redemption,promotion:result.promotion,profile:user,transactions:result.transactions||[]}}));
+    if(typeof render==='function') render();
+    return result;
   };
 
   window.KleenestPromotions.activeForLocation = async function (locationId, limit=50) {
