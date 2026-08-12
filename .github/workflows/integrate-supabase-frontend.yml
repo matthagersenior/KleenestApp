@@ -37,16 +37,16 @@ jobs:
           ]
           missing = [s for s in scripts if s not in text]
           if not missing:
-              print('All Supabase feature scripts already present; nothing to do.')
+              print('All Supabase/UI integration scripts already present; nothing to do.')
               raise SystemExit(0)
           needle = '</head>'
           if needle not in text:
               raise SystemExit('Could not find </head> in index.html')
           block = '\n' + '\n'.join(missing) + '\n'
           p.write_text(text.replace(needle, block + needle, 1), encoding='utf-8')
-          print(f'Injected {len(missing)} missing Supabase feature scripts.')
+          print(f'Injected {len(missing)} missing integration scripts.')
 
-      - name: Validate script files exist and JavaScript parses
+      - name: Validate integration scripts
         shell: bash
         run: |
           set -euo pipefail
@@ -54,6 +54,22 @@ jobs:
             test -s "$f"
             node --check "$f"
           done
+
+      - name: Validate index wiring
+        shell: python
+        run: |
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          required = [
+              'supabase-client.js', 'kleenest-supabase-runtime.js', 'kleenest-actions.js',
+              'kleenest-rewards.js', 'kleenest-reviews.js', 'kleenest-promotions.js',
+              'kleenest-account.js', 'kleenest-business.js', 'kleenest-business-management.js',
+              'kleenest-ui-integration.js'
+          ]
+          missing = [name for name in required if f'src="{name}"' not in text]
+          if missing:
+              raise SystemExit('Missing frontend scripts: ' + ', '.join(missing))
+          print('All Supabase feature and UI integration scripts are wired into index.html.')
 
       - name: Commit and push integration
         shell: bash
