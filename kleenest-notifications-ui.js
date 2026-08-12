@@ -1,0 +1,25 @@
+/* Kleenest notification UI controller. */
+(function(){'use strict';
+  const api=window.KleenestNotificationsUI=window.KleenestNotificationsUI||{};
+  function emit(name,detail){window.dispatchEvent(new CustomEvent(name,{detail:detail||{}}));}
+  function list(state){
+    const notifications=Array.isArray(state?.notifications)?state.notifications:[];
+    api.items=notifications;
+    emit('kleenest:notifications-loaded',{count:notifications.length,notifications});
+    return notifications;
+  }
+  async function refresh(reason){
+    if(!window.KleenestAccount?.loadState) throw new Error('Account data layer is not ready.');
+    return list(await window.KleenestAccount.loadState(reason||'notifications-refresh'));
+  }
+  async function markRead(id){
+    if(!id) throw new Error('Notification id is required.');
+    if(!window.KleenestActions?.markNotificationRead) throw new Error('Notification action is not ready.');
+    const result=await window.KleenestActions.markNotificationRead(id);
+    emit('kleenest:notification-read',{id,result});
+    await refresh('notification-read');
+    return result;
+  }
+  api.list=list;api.refresh=refresh;api.markRead=markRead;
+  window.addEventListener('kleenest:account-ui-loaded',e=>list(e.detail?.state));
+})();
