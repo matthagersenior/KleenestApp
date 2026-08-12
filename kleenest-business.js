@@ -2,53 +2,11 @@
 (function () {
   'use strict';
   window.KleenestBusiness = window.KleenestBusiness || {};
-
-  function client() {
-    if (!window.KleenestSupabase?.client) throw new Error('Supabase is not ready.');
-    return window.KleenestSupabase.client();
-  }
-
-  async function requireSession() {
-    const session = await window.KleenestSupabase.session();
-    if (!session) throw new Error('Please sign in to continue.');
-    return session;
-  }
-
-  window.KleenestBusiness.memberships = async function () {
-    await requireSession();
-    return window.KleenestSupabase.businessMemberships();
-  };
-
-  window.KleenestBusiness.dashboard = async function (businessId, start, end) {
-    await requireSession();
-    if (!businessId) throw new Error('A business ID is required.');
-    const { data, error } = await client().rpc('business_dashboard_secure_summary', {
-      p_business_id: businessId,
-      p_start: start || new Date(Date.now() - 30 * 86400000).toISOString(),
-      p_end: end || new Date().toISOString()
-    });
-    if (error) throw error;
-    return data || {};
-  };
-
-  window.KleenestBusiness.locations = async function (businessId) {
-    await requireSession();
-    if (!businessId) throw new Error('A business ID is required.');
-    const { data, error } = await client().from('locations')
-      .select('id,business_id,name,address,city,state,postal_code,country,latitude,longitude,phone,website,description,verification_status,is_premium,is_active,accessible,changing_table,cleanliness,cleanliness_pct,rating,review_count,cleaning_schedule,smart_bathroom,geofence_radius_m,created_at,updated_at')
-      .eq('business_id', businessId).order('created_at', { ascending: true });
-    if (error) throw error;
-    return data || [];
-  };
-
-  window.KleenestBusiness.recentReviews = async function (businessId, limit = 50) {
-    await requireSession();
-    if (!businessId) throw new Error('A business ID is required.');
-    const { data, error } = await client().from('reviews')
-      .select('id,location_id,user_id,check_in_id,stars,cleanliness_pct,comment,status,business_reply,business_replied_at,created_at,updated_at,locations!inner(business_id,name)')
-      .eq('locations.business_id', businessId).order('created_at', { ascending: false })
-      .limit(Math.min(Math.max(Number(limit), 1), 100));
-    if (error) throw error;
-    return data || [];
-  };
+  function client(){if(!window.KleenestSupabase?.client)throw new Error('Supabase is not ready.');return window.KleenestSupabase.client();}
+  async function requireSession(){const session=await window.KleenestSupabase.session();if(!session)throw new Error('Please sign in to continue.');return session;}
+  window.KleenestBusiness.memberships=async function(){await requireSession();return window.KleenestSupabase.businessMemberships();};
+  window.KleenestBusiness.dashboard=async function(businessId,start,end){await requireSession();if(!businessId)throw new Error('A business ID is required.');const {data,error}=await client().rpc('business_dashboard_secure_summary',{p_business_id:businessId,p_start:start||new Date(Date.now()-30*86400000).toISOString(),p_end:end||new Date().toISOString()});if(error)throw error;return data||{};};
+  window.KleenestBusiness.locations=async function(businessId){await requireSession();if(!businessId)throw new Error('A business ID is required.');const {data,error}=await client().from('locations').select('id,business_id,name,address,city,state,postal_code,country,latitude,longitude,phone,website,description,verification_status,is_premium,is_active,accessible,changing_table,cleanliness,cleanliness_pct,rating,review_count,cleaning_schedule,smart_bathroom,geofence_radius_m,created_at,updated_at').eq('business_id',businessId).order('created_at',{ascending:true});if(error)throw error;return data||[];};
+  window.KleenestBusiness.promotions=async function(businessId){await requireSession();if(!businessId)throw new Error('A business ID is required.');const {data,error}=await client().from('promotions').select('id,business_id,location_id,title,description,discount,starts_at,ends_at,days_of_week,start_hour,end_hour,active,created_at').eq('business_id',businessId).order('created_at',{ascending:false});if(error)throw error;return data||[];};
+  window.KleenestBusiness.recentReviews=async function(businessId,limit=50){await requireSession();if(!businessId)throw new Error('A business ID is required.');const {data,error}=await client().from('reviews').select('id,location_id,user_id,check_in_id,stars,cleanliness_pct,comment,status,business_reply,business_replied_at,created_at,updated_at,locations!inner(business_id,name)').eq('locations.business_id',businessId).order('created_at',{ascending:false}).limit(Math.min(Math.max(Number(limit),1),100));if(error)throw error;return data||[];};
 })();
