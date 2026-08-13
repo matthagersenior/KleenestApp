@@ -1,136 +1,31 @@
-/* Kleenest Supabase frontend bridge.
- * Requires @supabase/supabase-js v2 loaded before this file.
- * Browser-safe publishable key only; never use a service-role key here.
- */
+/* Kleenest Supabase frontend bridge. */
 (function () {
   const SUPABASE_URL = 'https://ssgesjzdvdsqacdtasje.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_f1rbczgvWKSQy2g9mTDQZg_K9Wv19bL';
-
   function client() {
     if (!window.supabase?.createClient) throw new Error('Supabase JS v2 is not loaded.');
-    if (!window.kleenestSupabase) {
-      window.kleenestSupabase = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_PUBLISHABLE_KEY,
-        { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
-      );
-    }
+    if (!window.kleenestSupabase) window.kleenestSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
     return window.kleenestSupabase;
   }
+  async function session(){const {data,error}=await client().auth.getSession();if(error)throw error;return data.session;}
+  async function signIn(email,password){const {data,error}=await client().auth.signInWithPassword({email,password});if(error)throw error;return data;}
+  async function signUp(email,password,metadata={}){const {data,error}=await client().auth.signUp({email,password,options:{data:metadata}});if(error)throw error;return data;}
+  async function signOut(){const {error}=await client().auth.signOut();if(error)throw error;}
+  async function profile(){const s=await session();if(!s)return null;const {data,error}=await client().from('profiles').select('*').eq('id',s.user.id).maybeSingle();if(error)throw error;return data;}
+  async function businessMemberships(){const s=await session();if(!s)return [];const {data,error}=await client().from('business_members').select('*, businesses(*)').eq('user_id',s.user.id);if(error)throw error;return data||[];}
+  async function nearbyLocations(lat,lng,radiusMeters=15000,limit=100){const {data,error}=await client().rpc('nearby_locations',{lat:Number(lat),lng:Number(lng),radius_meters:Math.min(Math.max(Number(radiusMeters),1),50000),limit_count:Math.min(Math.max(Number(limit),1),200)});if(error)throw error;return data||[];}
+  async function searchLocations(searchText,maxResults=50){const {data,error}=await client().rpc('search_locations',{search_text:String(searchText||'').trim(),max_results:Math.min(Math.max(Number(maxResults),1),100)});if(error)throw error;return data||[];}
+  async function verifyCheckin(qrCode,lat,lng){const {data,error}=await client().rpc('verify_checkin',{p_qr_code:qrCode,p_lat:Number(lat),p_lng:Number(lng)});if(error)throw error;return data;}
+  async function replyToReview(reviewId,reply){const {data,error}=await client().rpc('reply_to_review',{p_review_id:reviewId,p_reply:String(reply||'').trim()});if(error)throw error;return data;}
+  async function redeemPromotion(promotionId,locationId=null){const {data,error}=await client().rpc('redeem_promotion',{p_promotion_id:promotionId,p_location_id:locationId});if(error)throw error;return data;}
+  async function markNotificationRead(notificationId){const {data,error}=await client().rpc('mark_notification_read',{p_notification_id:notificationId});if(error)throw error;return data;}
+  async function dashboardSummary(businessId,start,end){const {data,error}=await client().rpc('business_dashboard_summary',{p_business_id:businessId,p_start:start||new Date(Date.now()-30*86400000).toISOString(),p_end:end||new Date().toISOString()});if(error)throw error;return data||[];}
+  window.KleenestSupabase={url:SUPABASE_URL,client,session,signIn,signUp,signOut,profile,businessMemberships,nearbyLocations,searchLocations,verifyCheckin,replyToReview,redeemPromotion,markNotificationRead,dashboardSummary};
 
-  async function session() {
-    const { data, error } = await client().auth.getSession();
-    if (error) throw error;
-    return data.session;
-  }
-
-  async function signIn(email, password) {
-    const { data, error } = await client().auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    return data;
-  }
-
-  async function signUp(email, password, metadata = {}) {
-    const { data, error } = await client().auth.signUp({ email, password, options: { data: metadata } });
-    if (error) throw error;
-    return data;
-  }
-
-  async function signOut() {
-    const { error } = await client().auth.signOut();
-    if (error) throw error;
-  }
-
-  async function profile() {
-    const s = await session();
-    if (!s) return null;
-    const { data, error } = await client().from('profiles').select('*').eq('id', s.user.id).maybeSingle();
-    if (error) throw error;
-    return data;
-  }
-
-  async function businessMemberships() {
-    const s = await session();
-    if (!s) return [];
-    const { data, error } = await client().from('business_members').select('*, businesses(*)').eq('user_id', s.user.id);
-    if (error) throw error;
-    return data || [];
-  }
-
-  async function nearbyLocations(lat, lng, radiusMeters = 15000, limit = 100) {
-    const { data, error } = await client().rpc('nearby_locations', {
-      lat: Number(lat), lng: Number(lng),
-      radius_meters: Math.min(Math.max(Number(radiusMeters), 1), 50000),
-      limit_count: Math.min(Math.max(Number(limit), 1), 200)
-    });
-    if (error) throw error;
-    return data || [];
-  }
-
-  async function searchLocations(searchText, maxResults = 50) {
-    const { data, error } = await client().rpc('search_locations', {
-      search_text: String(searchText || '').trim(),
-      max_results: Math.min(Math.max(Number(maxResults), 1), 100)
-    });
-    if (error) throw error;
-    return data || [];
-  }
-
-  async function verifyCheckin(qrCode, lat, lng) {
-    const { data, error } = await client().rpc('verify_checkin', {
-      p_qr_code: qrCode, p_lat: Number(lat), p_lng: Number(lng)
-    });
-    if (error) throw error;
-    return data;
-  }
-
-  async function replyToReview(reviewId, reply) {
-    const { data, error } = await client().rpc('reply_to_review', {
-      p_review_id: reviewId, p_reply: String(reply || '').trim()
-    });
-    if (error) throw error;
-    return data;
-  }
-
-  async function redeemPromotion(promotionId, locationId = null) {
-    const { data, error } = await client().rpc('redeem_promotion', {
-      p_promotion_id: promotionId, p_location_id: locationId
-    });
-    if (error) throw error;
-    return data;
-  }
-
-  async function markNotificationRead(notificationId) {
-    const { data, error } = await client().rpc('mark_notification_read', { p_notification_id: notificationId });
-    if (error) throw error;
-    return data;
-  }
-
-  async function dashboardSummary(businessId, start, end) {
-    const { data, error } = await client().rpc('business_dashboard_summary', {
-      p_business_id: businessId,
-      p_start: start || new Date(Date.now() - 30 * 86400000).toISOString(),
-      p_end: end || new Date().toISOString()
-    });
-    if (error) throw error;
-    return data || [];
-  }
-
-  window.KleenestSupabase = {
-    url: SUPABASE_URL,
-    client,
-    session,
-    signIn,
-    signUp,
-    signOut,
-    profile,
-    businessMemberships,
-    nearbyLocations,
-    searchLocations,
-    verifyCheckin,
-    replyToReview,
-    redeemPromotion,
-    markNotificationRead,
-    dashboardSummary
-  };
+  function legacyUser(user,p){if(!user)return null;return {id:user.id,name:p?.display_name||p?.username||user.user_metadata?.display_name||user.email?.split('@')[0]||'Kleenest user',email:user.email||'',isBusinessUser:!!p?.is_business_user,isAdmin:!!p?.is_admin,points:Number(p?.points||0),badges:['First Check-in'],subscriptionLevel:String(p?.subscription_tier||'Free').replace(/^./,c=>c.toUpperCase()),avatar:'👤',joinDate:new Date().toLocaleString('en',{month:'short',year:'numeric'}),totalCheckIns:Number(p?.total_check_ins||0),totalReviews:Number(p?.total_reviews||0),businessName:null,verificationStatus:null,following:[],followers:[],likedReviews:[],streak:Number(p?.streak||0),level:Number(p?.level||1),lastCheckInDay:null,favorites:[],familyMembers:[],source:'supabase'};}
+  async function syncLegacy(){const s=await session();if(!s?.user)return null;let p=null;try{p=await profile();}catch(e){console.warn('Kleenest profile sync unavailable:',e);}const u=legacyUser(s.user,p);if(typeof state!=='undefined'){state.users=Array.isArray(state.users)?state.users:[];const i=state.users.findIndex(x=>x.id===u.id);if(i>=0)state.users[i]={...state.users[i],...u};else state.users.push(u);state.session=u.id;if(typeof save==='function')save();if(typeof render==='function')render();}return u;}
+  function authMessage(e){const m=String(e?.message||e||'Authentication failed.');if(/invalid login credentials/i.test(m))return'Email or password is incorrect.';if(/email not confirmed/i.test(m))return'Please confirm your email before signing in.';if(/already registered|user already registered/i.test(m))return'That email is already registered. Try logging in.';return m;}
+  function closeModal(){document.querySelector('.modal-overlay')?.remove();}
+  document.addEventListener('click',async function(e){const login=e.target.closest?.('[data-do-login]'),signup=e.target.closest?.('[data-do-signup]');if(!login&&!signup)return;e.preventDefault();e.stopImmediatePropagation();const b=login||signup;if(b.dataset.authBusy==='1')return;b.dataset.authBusy='1';const old=b.textContent;b.disabled=true;b.textContent=signup?'Creating…':'Signing in…';try{if(login){const email=document.getElementById('login-email')?.value?.trim().toLowerCase(),password=document.getElementById('login-pass')?.value||'';if(!email||!password)throw new Error('Enter your email and password.');await signIn(email,password);await syncLegacy();closeModal();window.dispatchEvent(new CustomEvent('kleenest:auth-changed'));}else{const name=document.getElementById('su-name')?.value?.trim(),email=document.getElementById('su-email')?.value?.trim().toLowerCase(),password=document.getElementById('su-pass')?.value||'';if(!name||!email||password.length<6)throw new Error('Please fill all fields. Password must be at least 6 characters.');const r=await signUp(email,password,{display_name:name});if(!r.session){alert('Account created. Check your email to confirm your account, then log in.');return;}await syncLegacy();closeModal();window.dispatchEvent(new CustomEvent('kleenest:auth-changed'));}}catch(err){alert(authMessage(err));}finally{b.disabled=false;b.textContent=old;delete b.dataset.authBusy;}},true);
+  client();
 })();
