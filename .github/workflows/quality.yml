@@ -56,3 +56,7 @@ jobs:
         run: node tests/legacy-production-boundary.js
       - name: Run production index boundary checks
         run: node tests/production-index-boundary.js
+      - name: Run current-index migration contract
+        run: node tests/production-index-contract.js
+      - name: Run release gate contract
+        run: node tests/release-gate-contract.js
