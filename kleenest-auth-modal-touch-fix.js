@@ -1,12 +1,14 @@
-/* Mobile auth-modal touch fix.
-   Inputs/buttons inside an open modal must not be treated as backdrop taps.
-   Capture phase prevents legacy document/backdrop click handlers from closing
-   the auth modal when the user taps an input on touch devices.
+/* Mobile auth-modal touch guard.
+   Interactive controls inside an auth dialog must not become backdrop taps.
+   Capture-phase protection handles dynamically-created dialogs and touch/pointer
+   activation without changing intentional backdrop dismissal.
 */
 (function(){'use strict';
- function isInteractive(el){return !!(el&&el.closest&&el.closest('input,textarea,select,button,label,a,[contenteditable="true"]'));}
- function isModal(el){return !!(el&&el.closest&&el.closest('.modal-overlay,.modal-box,[role="dialog"]'));}
- document.addEventListener('pointerdown',function(e){if(isModal(e.target)&&isInteractive(e.target))e.stopPropagation();},true);
- document.addEventListener('pointerup',function(e){if(isModal(e.target)&&isInteractive(e.target))e.stopPropagation();},true);
- document.addEventListener('click',function(e){if(isModal(e.target)&&isInteractive(e.target))e.stopPropagation();},true);
+ const interactive='input,textarea,select,button,label,a,[contenteditable="true"]';
+ const dialogs='.modal-overlay,.modal-box,[role="dialog"],.auth-modal,.login-modal,.signup-modal';
+ function dialog(el){return !!(el&&el.closest&&el.closest(dialogs));}
+ function control(el){return !!(el&&el.closest&&el.closest(interactive));}
+ function protect(e){if(dialog(e.target)&&control(e.target))e.stopPropagation();}
+ ['pointerdown','pointerup','touchstart','touchend','click'].forEach(type=>document.addEventListener(type,protect,true));
+ window.kleenestAuthModalTouchFix={installed:true};
 })();
