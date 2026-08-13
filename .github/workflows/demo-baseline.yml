@@ -1,0 +1,30 @@
+name: Legacy Demo Baseline
+on:
+  push:
+    branches: ["demo/legacy-monolith"]
+  pull_request:
+    branches: ["demo/legacy-monolith"]
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate reference contract
+        run: node tests/monolith-reference-contract.js
+      - name: Validate embedded JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('index.html','utf8');
+          const scripts=[...html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
+          for(let i=0;i<scripts.length;i++){
+            try{new Function(scripts[i]);}catch(e){throw new Error(`Embedded script ${i+1} failed syntax validation: ${e.message}`)}
+          }
+          console.log(`Validated ${scripts.length} embedded scripts.`);
+          NODE
