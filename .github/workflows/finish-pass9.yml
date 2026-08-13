@@ -1,0 +1,87 @@
+name: Finish Pass 9 view extraction
+
+on:
+  push:
+    branches:
+      - refactor/monolith-removal
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract-views:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Build kleenest-views.js from the previous monolith checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Pass 9 index.html is already the reduced checkpoint. Its parent
+          # commit contains the Pass 8 monolith from which this module came.
+          if [ -f kleenest-views.js ]; then
+            echo "kleenest-views.js already exists; nothing to do."
+            exit 0
+          fi
+
+          git show HEAD^:index.html > /tmp/pass8-index.html
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          src = Path('/tmp/pass8-index.html').read_text(encoding='utf-8')
+          start_marker = '/* ========== ROUTE PLANNING'
+          end_marker = '/* ========== MODALS ========== */'
+          start = src.find(start_marker)
+          end = src.find(end_marker, start)
+          if start < 0 or end < 0 or end <= start:
+              raise SystemExit('Could not locate Pass 8 view block markers')
+
+          module = src[start:end]
+          Path('kleenest-views.js').write_text(module, encoding='utf-8')
+
+          index = Path('index.html').read_text(encoding='utf-8')
+          if '<script src="kleenest-views.js"></script>' not in index:
+              anchor = '<script src="kleenest-ui-integration.js"></script>'
+              if anchor not in index:
+                  raise SystemExit('Could not find UI integration script anchor')
+              index = index.replace(anchor, anchor + '\n<script src="kleenest-views.js"></script>', 1)
+              Path('index.html').write_text(index, encoding='utf-8')
+
+          print(f'Extracted {len(module.encode("utf-8")):,} bytes into kleenest-views.js')
+          PY
+
+      - name: Verify extracted JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check kleenest-views.js
+          test -f kleenest-views.js
+          grep -q '<script src="kleenest-views.js"></script>' index.html
+          echo "Pass 9 extraction verified."
+
+      - name: Remove temporary staging payload
+        shell: bash
+        run: |
+          rm -rf _pass9_views_seed _pass9_views_parts
+
+      - name: Commit Pass 9 module
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html kleenest-views.js _pass9_views_seed _pass9_views_parts
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Complete Pass 9 view module extraction'
+          git push
