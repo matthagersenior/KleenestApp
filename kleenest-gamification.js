@@ -1,0 +1,26 @@
+/* Kleenest modular gamification domain. Server-authoritative points, levels, badges, streaks and contests. */
+(function(){'use strict';
+ const K=window.KleenestGamification=window.KleenestGamification||{};
+ const rpc=async(name,args={})=>{const api=window.KleenestSupabase;if(!api||typeof api.rpc!=='function')throw new Error('Supabase gamification boundary unavailable');return api.rpc(name,args)};
+ K.POINT_RULES=Object.freeze({check_in:10,review:25,review_like:2,follow:1,verified_business_review:10,streak_day:5,contest_entry:5,contest_win:250,contest_place:100,community_helpful:15});
+ K.LEVELS=Object.freeze([{level:1,min:0,name:'Newcomer'},{level:2,min:100,name:'Regular'},{level:3,min:300,name:'Explorer'},{level:4,min:700,name:'Champion'},{level:5,min:1500,name:'Elite'},{level:6,min:3000,name:'Legend'}]);
+ K.getProfile=()=>rpc('get_gamification_profile');
+ K.getLeaderboard=(scope='global',limit=50)=>rpc('get_gamification_leaderboard',{p_scope:scope,p_limit:limit});
+ K.getBadges=()=>rpc('get_gamification_badges');
+ K.getUserBadges=(userId=null)=>rpc('get_user_badges',{p_user_id:userId});
+ K.getStreak=()=>rpc('get_user_streak');
+ K.recordActivity=(activityType,metadata={})=>rpc('record_gamification_activity',{p_activity_type:activityType,p_metadata:metadata});
+ K.awardPoints=(reason,metadata={})=>rpc('award_gamification_points',{p_reason:reason,p_metadata:metadata});
+ K.getPointHistory=(limit=100)=>rpc('get_points_history',{p_limit:limit});
+ K.getContests=(status='active')=>rpc('get_contests',{p_status:status});
+ K.getContest=(contestId)=>rpc('get_contest',{p_contest_id:contestId});
+ K.joinContest=(contestId)=>rpc('join_contest',{p_contest_id:contestId});
+ K.leaveContest=(contestId)=>rpc('leave_contest',{p_contest_id:contestId});
+ K.submitContestEntry=(contestId,entry={})=>rpc('submit_contest_entry',{p_contest_id:contestId,p_entry:entry});
+ K.getContestLeaderboard=(contestId,limit=50)=>rpc('get_contest_leaderboard',{p_contest_id:contestId,p_limit:limit});
+ K.getSummary=async()=>{const [profile,badges,streak,history]=await Promise.all([K.getProfile(),K.getUserBadges(),K.getStreak(),K.getPointHistory(25)]);return {profile,badges,streak,history}};
+ K.levelForPoints=points=>{let result=K.LEVELS[0];for(const level of K.LEVELS)if(Number(points)>=level.min)result=level;return result};
+ K.pointsToNextLevel=points=>{const next=K.LEVELS.find(x=>x.min>Number(points));return next?Math.max(0,next.min-Number(points)):0};
+ K.bind=(root=document)=>{root.addEventListener('click',async e=>{const el=e.target.closest('[data-gamification-action]');if(!el)return;const action=el.dataset.gamificationAction;try{let result;if(action==='activity')result=await K.recordActivity(el.dataset.activityType||'community_helpful');if(action==='contest-join')result=await K.joinContest(el.dataset.contestId);if(action==='contest-leave')result=await K.leaveContest(el.dataset.contestId);if(action==='contest-entry')result=await K.submitContestEntry(el.dataset.contestId,JSON.parse(el.dataset.entry||'{}'));el.dispatchEvent(new CustomEvent('kleenest:gamification-result',{detail:{action,result},bubbles:true}))}catch(error){el.dispatchEvent(new CustomEvent('kleenest:gamification-error',{detail:{action,error},bubbles:true}))}})};
+ K.bind();
+})();
