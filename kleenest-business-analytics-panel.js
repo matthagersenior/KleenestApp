@@ -1,10 +1,10 @@
 /* Business Preferred Analytics — compact live dashboard component. */
 (function(){'use strict';
- async function render(container){
+ async function render(container,start,end){
   if(!container||!window.kleenestBusinessAnalytics)return;
   container.textContent='Loading Preferred analytics…';
   try{
-   const all=await window.kleenestBusinessAnalytics.current();
+   const all=await window.kleenestBusinessAnalytics.current(start,end);
    const rows=(all||[]).flatMap(x=>Array.isArray(x?.locations)?x.locations:[]);
    const totals=(all||[]).reduce((a,x)=>{a.activations+=Number(x?.total_activations||0);a.uses+=Number(x?.total_uses||0);a.users+=Number(x?.unique_users||0);return a;},{activations:0,uses:0,users:0});
    container.innerHTML='<section class="business-analytics-panel"><h3>Preferred Analytics</h3><div class="business-analytics-totals" data-totals></div><div data-summary></div></section>';
