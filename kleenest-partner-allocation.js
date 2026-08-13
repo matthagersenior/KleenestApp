@@ -1,0 +1,10 @@
+/* Execute enterprise partner intelligence recommendations as measurable allocations. */
+(function(){'use strict';
+ const A=window.KleenestPartnerAllocation=window.KleenestPartnerAllocation||{};
+ const rpc=async(name,args={})=>{const api=window.KleenestSupabase;if(!api||typeof api.rpc!=='function')throw new Error('Partner allocation boundary unavailable');return api.rpc(name,args)};
+ A.create=(networkId,partnerId,campaignId,type,quantity,budgetCents,rationale)=>rpc('create_partner_allocation',{p_network_id:networkId,p_partner_business_id:partnerId,p_campaign_id:campaignId,p_type:type,p_quantity:quantity,p_budget_cents:budgetCents,p_rationale:rationale});
+ A.activate=id=>rpc('activate_partner_allocation',{p_allocation_id:id});
+ A.roi=(networkId,start,end)=>rpc('get_partner_allocation_roi',{p_network_id:networkId,p_start:start,p_end:end});
+ A.planFromBenchmark=(partner={})=>{const plans=[];if(Number(partner.access_redemptions||0)>0)plans.push({type:'single_use_access',reason:'Access demand is converting'});if(Number(partner.promotion_redemptions||0)>0)plans.push({type:'promotion',reason:'Promotion activity is converting'});if(Number(partner.preferred_uses||0)>0)plans.push({type:'preferred',reason:'Preferred usage demonstrates demand'});if(Number(partner.check_ins||0)>Number(partner.reviews||0)*3)plans.push({type:'contest',reason:'Convert check-in volume into review quality'});return plans};
+ A.render=(root,rows=[])=>{if(!root)return;root.innerHTML=`<section class="kleenest-partner-allocation"><header><h2>Partner Allocation</h2><p>Move promotions, access, Preferred and rewards toward partners with measurable performance.</p></header><div class="allocation-list">${rows.map(r=>`<article><h3>${r.partner_name||r.partner_business_id}</h3><p>ROI efficiency: ${Number(r.efficiency||0).toFixed(2)}</p><p>Outcome activity: ${r.outcome_value||0}</p><button type="button" data-allocation-partner="${r.partner_business_id}">Allocate</button></article>`).join('')}</div></section>`};
+})();
