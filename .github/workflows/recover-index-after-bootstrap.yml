@@ -1,0 +1,21 @@
+name: Recover index after bootstrap wiring
+on:
+  push:
+    branches: [refactor/monolith-removal]
+permissions:
+  contents: write
+jobs:
+  recover:
+    if: github.event.head_commit.message == 'Wire unified runtime bootstrap into refactor entrypoint'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Revert bootstrap entrypoint replacement
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git revert --no-edit 54de61a87f3c5bbfa598fa7a586e07193643634d
+          git push
