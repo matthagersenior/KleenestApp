@@ -1,0 +1,21 @@
+/* Kleenest modular social domain: favorites, family, follows and review likes. */
+(function(){'use strict';
+ const K=window.KleenestSocial=window.KleenestSocial||{};
+ const rpc=async(name,args={})=>{const api=window.KleenestSupabase;if(!api||typeof api.rpc!=='function')throw new Error('Supabase social boundary unavailable');return api.rpc(name,args)};
+ K.listFavorites=(limit=100)=>rpc('list_user_favorites',{p_limit:limit});
+ K.addFavorite=placeId=>rpc('add_user_favorite',{p_place_id:placeId});
+ K.removeFavorite=placeId=>rpc('remove_user_favorite',{p_place_id:placeId});
+ K.listFollowing=(userId=null,limit=100)=>rpc('list_following',{p_user_id:userId,p_limit:limit});
+ K.listFollowers=(userId=null,limit=100)=>rpc('list_followers',{p_user_id:userId,p_limit:limit});
+ K.follow=userId=>rpc('follow_user',{p_user_id:userId});
+ K.unfollow=userId=>rpc('unfollow_user',{p_user_id:userId});
+ K.listLikedReviews=(limit=100)=>rpc('list_liked_reviews',{p_limit:limit});
+ K.likeReview=reviewId=>rpc('like_review',{p_review_id:reviewId});
+ K.unlikeReview=reviewId=>rpc('unlike_review',{p_review_id:reviewId});
+ K.listFamily=(limit=50)=>rpc('list_family_members',{p_limit:limit});
+ K.addFamily=(member={})=>rpc('add_family_member',{p_member:member});
+ K.updateFamily=(memberId,member={})=>rpc('update_family_member',{p_member_id:memberId,p_member:member});
+ K.removeFamily=memberId=>rpc('remove_family_member',{p_member_id:memberId});
+ K.bind=(root=document)=>{root.addEventListener('click',async e=>{const el=e.target.closest('[data-social-action]');if(!el)return;const action=el.dataset.socialAction;try{let result;if(action==='favorite')result=await K.addFavorite(el.dataset.placeId);if(action==='unfavorite')result=await K.removeFavorite(el.dataset.placeId);if(action==='follow')result=await K.follow(el.dataset.userId);if(action==='unfollow')result=await K.unfollow(el.dataset.userId);if(action==='review-like')result=await K.likeReview(el.dataset.reviewId);if(action==='review-unlike')result=await K.unlikeReview(el.dataset.reviewId);if(action==='family-remove')result=await K.removeFamily(el.dataset.memberId);el.dispatchEvent(new CustomEvent('kleenest:social-result',{detail:{action,result},bubbles:true}))}catch(error){el.dispatchEvent(new CustomEvent('kleenest:social-error',{detail:{action,error},bubbles:true}))}})};
+ K.bind();
+})();
