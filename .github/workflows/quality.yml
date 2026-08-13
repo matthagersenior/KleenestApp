@@ -40,3 +40,5 @@ jobs:
           grep -q 'icon-placeholder.svg' manifest.webmanifest
       - name: Run runtime smoke checks
         run: node tests/kleenest-runtime-smoke.js
+      - name: Run auth contract checks
+        run: node tests/auth-contract.js
