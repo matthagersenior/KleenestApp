@@ -1,0 +1,21 @@
+/* Cross-surface relationships: each surface can hand qualified context to another modular surface. */
+(function(){'use strict';
+ const R=window.KleenestSurfaceRelationships=window.KleenestSurfaceRelationships||{};
+ R.mapsToDetails=(location)=>({surface:'details',location});
+ R.detailsToRoute=(location)=>({surface:'route',seedStops:[location]});
+ R.detailsToCommunity=(location)=>({surface:'community',topicLocationId:location?.id});
+ R.detailsToProfile=(location)=>({surface:'profile',favoriteLocationId:location?.id});
+ R.routeToCommunity=(route)=>({surface:'community',routeId:route?.id});
+ R.routeToProfile=(route)=>({surface:'profile',routeId:route?.id});
+ R.homeToMaps=(filters={})=>({surface:'maps',filters});
+ R.homeToCommunity=()=>({surface:'community'});
+ R.communityToProfile=(userId)=>({surface:'profile',userId});
+ R.communityToDetails=(locationId)=>({surface:'details',locationId});
+ R.businessToMaps=(filters={})=>({surface:'maps',filters:{...filters,business:true}});
+ R.businessToCommunity=(businessId)=>({surface:'community',businessId});
+ R.businessToAdmin=(businessId)=>({surface:'admin',businessId});
+ R.adminToBusiness=(businessId)=>({surface:'business',businessId});
+ R.profileToMaps=(filters={})=>({surface:'maps',filters});
+ R.profileToRoute=(favorites=[])=>({surface:'route',seedStops:favorites});
+ R.profileToCommunity=()=>({surface:'community'});
+})();
