@@ -1,0 +1,67 @@
+name: Finish Pass 9 view extraction
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout refactor branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/monolith-removal
+          fetch-depth: 1
+
+      - name: Extract view block from current index
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'index.html';
+          const html = fs.readFileSync(path, 'utf8');
+          const startMarker = '/* ========== ROUTE PLANNING (corridor search, ETA, export) ========== */';
+          const endMarker = '/* ========== MODALS ========== */';
+          const start = html.indexOf(startMarker);
+          const end = html.indexOf(endMarker, start + startMarker.length);
+          if (start < 0) throw new Error('Pass 9 start marker was not found in the CURRENT index.html. No Pass 8 file is required.');
+          if (end < 0) throw new Error('Pass 9 end marker was not found in the CURRENT index.html.');
+          if (end <= start) throw new Error('Pass 9 markers are out of order.');
+
+          const moduleText = html.slice(start, end).replace(/^\s+|\s+$/g, '') + '\n';
+          fs.writeFileSync('kleenest-views.js', moduleText, 'utf8');
+
+          const previousScript = html.lastIndexOf('<script', start);
+          const scriptTagEnd = html.indexOf('>', previousScript);
+          if (previousScript < 0 || scriptTagEnd < 0) throw new Error('Could not locate the main inline script containing the view block.');
+
+          let newHtml = html.slice(0, start) + html.slice(end);
+          const newPreviousScript = newHtml.lastIndexOf('<script', start);
+          const newScriptTagEnd = newHtml.indexOf('>', newPreviousScript);
+          const loader = '\n<script src="kleenest-views.js"></script>';
+          newHtml = newHtml.slice(0, newPreviousScript) + loader + newHtml.slice(newPreviousScript);
+
+          fs.writeFileSync(path, newHtml, 'utf8');
+          console.log(`Extracted ${moduleText.length} characters to kleenest-views.js`);
+          console.log(`index.html is now ${newHtml.length} characters`);
+          NODE
+
+      - name: Syntax check extracted module
+        run: node --check kleenest-views.js
+
+      - name: Verify wiring
+        run: |
+          test -s kleenest-views.js
+          grep -q 'kleenest-views.js' index.html
+          ! grep -q 'ROUTE PLANNING (corridor search, ETA, export)' index.html
+
+      - name: Commit Pass 9
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html kleenest-views.js
+          git diff --cached --quiet && { echo 'No Pass 9 changes to commit.'; exit 0; }
+          git commit -m 'Pass 9: extract large view section from index'
+          git push origin HEAD:refactor/monolith-removal
