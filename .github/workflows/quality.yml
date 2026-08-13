@@ -42,3 +42,5 @@ jobs:
         run: node tests/kleenest-runtime-smoke.js
       - name: Run auth contract checks
         run: node tests/auth-contract.js
+      - name: Run account lifecycle/UI checks
+        run: node tests/account-contract.js
