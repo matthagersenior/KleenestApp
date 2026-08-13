@@ -1,8 +1,13 @@
-/* Lightweight production acceptance checks. Diagnostics only; authorization stays server-side. */
+/* Production-safe acceptance checks. Diagnostics only; authorization stays server-side. */
 (function(){'use strict';
- window.kleenestAcceptance={
-  dependencies(){return {supabase:!!window.KleenestSupabase,preferredAccess:!!window.KleenestSupabase?.preferredEligibility,preferredActivation:!!window.KleenestSupabase?.activatePreferred,preferredVisit:!!window.KleenestSupabase?.usePreferred,visitTracking:!!window.KleenestSupabase?.verifyCheckin,businessAnalytics:!!window.kleenestBusinessAnalytics,partnerPrograms:!!window.kleenestBusinessAnalytics?.programUsage,authTouchFix:!!window.kleenestAuthModalTouchFix};},
-  async preferredEligibility(locationId){if(!window.KleenestSupabase?.preferredEligibility)return {ok:false,reason:'preferred_access_missing'};try{return await window.KleenestSupabase.preferredEligibility(locationId);}catch(error){return {ok:false,reason:error?.message||'eligibility_check_failed'};}},
-  async preferredAnalytics(){if(!window.kleenestBusinessAnalytics?.current)return {ok:false,reason:'analytics_missing'};try{return {ok:true,data:await window.kleenestBusinessAnalytics.current()};}catch(error){return {ok:false,reason:error?.message||'analytics_check_failed'};}}
- };
+ const api=window.kleenestAcceptance=window.kleenestAcceptance||{};
+ const fail=(reason,e)=>({ok:false,reason:e?.message||reason}); const pass=data=>({ok:true,data});
+ api.dependencies=function(){return {supabase:!!window.KleenestSupabase,auth:!!window.KleenestSupabase?.session,preferredAccess:!!window.KleenestSupabase?.preferredEligibility,preferredActivation:!!window.KleenestSupabase?.activatePreferred,preferredVisit:!!window.KleenestSupabase?.usePreferred,visitTracking:!!window.KleenestRuntime?.verifyCheckin,businessData:!!window.KleenestBusinessData,businessAnalytics:!!window.kleenestBusinessAnalytics,partnerPrograms:!!window.KleenestBusinessData?.partnerPrograms,partnershipUi:!!window.KleenestPartnershipUI,authTouchFix:!!window.kleenestAuthModalTouchFix};};
+ api.session=async()=>{try{return pass(await window.KleenestSupabase.session());}catch(e){return fail('session_check_failed',e);}};
+ api.demoNetwork=async()=>{try{return pass(await window.KleenestSupabase.rpc('demo_network_health'));}catch(e){return fail('demo_network_health_failed',e);}};
+ api.preferredEligibility=async id=>{try{return pass(await window.KleenestSupabase.preferredEligibility(id));}catch(e){return fail('eligibility_check_failed',e);}};
+ api.partnerships=async businessId=>{try{const d=window.KleenestBusinessData;if(!d)return fail('business_data_missing');const [programs,agreements]=await Promise.all([d.programMemberships(businessId),d.agreements(businessId)]);return pass({programs,agreements});}catch(e){return fail('partnership_check_failed',e);}};
+ api.program=async programId=>{try{const d=window.KleenestBusinessData;if(!d)return fail('business_data_missing');const [locations,members]=await Promise.all([d.programLocations(programId),d.programMembers(programId)]);return pass({locations,members});}catch(e){return fail('program_check_failed',e);}};
+ api.preferredAnalytics=async()=>{try{if(!window.kleenestBusinessAnalytics?.current)return fail('analytics_missing');return pass(await window.kleenestBusinessAnalytics.current());}catch(e){return fail('analytics_check_failed',e);}};
+ api.runAll=async(businessId,programId,locationId)=>{const [session,network,partnerships,program,eligibility,analytics]=await Promise.all([api.session(),api.demoNetwork(),businessId?api.partnerships(businessId):pass(null),programId?api.program(programId):pass(null),locationId?api.preferredEligibility(locationId):pass(null),api.preferredAnalytics()]);return {ok:[session,network,partnerships,program,eligibility,analytics].every(x=>x.ok!==false),dependencies:api.dependencies(),session,network,partnerships,program,eligibility,analytics};};
 })();
