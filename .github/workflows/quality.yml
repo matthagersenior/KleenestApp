@@ -29,9 +29,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f index.html
-          test -f manifest.webmanifest
-          test -f sw.js
-          test -f capacitor.config.ts
-          test -f kleenest-supabase.js
-          test -f kleenest-supabase-runtime.js
+          for f in index.html manifest.webmanifest sw.js capacitor.config.ts kleenest-supabase.js kleenest-supabase-runtime.js kleenest-account-lifecycle.js kleenest-account-ui.js privacy.html terms.html support.html icon-placeholder.svg; do
+            test -f "$f"
+          done
+      - name: Verify manifest icon reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f icon-placeholder.svg
+          grep -q 'icon-placeholder.svg' manifest.webmanifest
