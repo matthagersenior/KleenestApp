@@ -29,13 +29,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in index.html manifest.webmanifest sw.js capacitor.config.ts kleenest-supabase.js kleenest-supabase-runtime.js kleenest-account-lifecycle.js kleenest-account-ui.js privacy.html terms.html support.html icon-placeholder.svg; do
+          for f in *.js index.html manifest.webmanifest sw.js capacitor.config.ts kleenest-supabase.js kleenest-supabase-runtime.js kleenest-account-lifecycle.js kleenest-account-ui.js privacy.html terms.html support.html icon-placeholder.svg; do
             test -f "$f"
           done
       - name: Verify manifest icon reference
-        shell: bash
         run: |
-          set -euo pipefail
           test -f icon-placeholder.svg
           grep -q 'icon-placeholder.svg' manifest.webmanifest
       - name: Run runtime smoke checks
@@ -78,3 +76,5 @@ jobs:
         run: node tests/feature-completion-contract.js
       - name: Run feature UI integration contract
         run: node tests/feature-ui-contract.js
+      - name: Run route feature contract
+        run: node tests/route-feature-contract.js
