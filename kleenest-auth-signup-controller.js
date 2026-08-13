@@ -1,0 +1,11 @@
+/* Canonical signup controller. UI-independent so modal refactors cannot break account creation. */
+(function(){'use strict';
+ const A=window.KleenestAuthSignup=window.KleenestAuthSignup||{};
+ A.version='1.0.0'; A.inFlight=false;
+ A.validate=(email,password)=>{const errors=[];if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))errors.push('Enter a valid email address.');if(!password||password.length<8)errors.push('Password must be at least 8 characters.');return errors;};
+ A.submit=async({email,password,metadata={},demo=false}={})=>{if(A.inFlight)throw new Error('Signup already in progress.');const errors=A.validate(email,password);if(errors.length)throw new Error(errors.join(' '));if(!window.KleenestSupabase?.signUp)throw new Error('Signup service is unavailable.');A.inFlight=true;window.dispatchEvent(new CustomEvent('kleenest:signup-start'));try{const data=await window.KleenestSupabase.signUp(email.trim(),password,{...metadata,is_demo_test:!!demo});window.dispatchEvent(new CustomEvent('kleenest:signup-success',{detail:{data,demo:!!demo}}));try{await window.KleenestSupabase.ensureProfile?.();}catch(e){console.warn('Profile provisioning deferred:',e);}return data;}catch(error){window.dispatchEvent(new CustomEvent('kleenest:signup-error',{detail:{error}}));throw error;}finally{A.inFlight=false;window.dispatchEvent(new CustomEvent('kleenest:signup-finished'));}};
+ A.bind=(form)=>{if(!form||form.dataset.kleenestSignupBound)return;form.dataset.kleenestSignupBound='true';form.addEventListener('submit',async e=>{e.preventDefault();e.stopPropagation();const email=form.querySelector('input[type="email"]')?.value||form.querySelector('[name="email"]')?.value;const password=form.querySelector('input[type="password"]')?.value||form.querySelector('[name="password"]')?.value;const demo=form.dataset.demoTest==='true';try{await A.submit({email,password,demo});}catch(error){form.dispatchEvent(new CustomEvent('kleenest:signup-form-error',{detail:{error},bubbles:true}));}});};
+ A.bindAll=()=>document.querySelectorAll('form[data-auth-form="signup"],form[data-signup-form],#signup-form').forEach(A.bind);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',A.bindAll,{once:true});else A.bindAll();
+ new MutationObserver(A.bindAll).observe(document.documentElement,{childList:true,subtree:true});
+})();
