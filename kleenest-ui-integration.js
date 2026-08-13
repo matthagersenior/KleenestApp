@@ -8,19 +8,22 @@ window.KleenestUI.loadRewardsHistory=async reason=>window.KleenestRewardsHistory
 window.KleenestUI.loadGamification=async root=>window.KleenestCommunityUI?.renderGamification?.(root)||null;
 window.KleenestUI.loadCommunity=async root=>window.KleenestCommunityUI?.renderSocial?.(root)||null;
 
-// Modal interaction guard: overlay close markers must never treat clicks on modal children as backdrop clicks.
-// The monolith/index currently uses delegated closest() handlers, so stop those clicks before they bubble.
+// Modal close-boundary fix. The legacy delegated handlers use closest('[data-close-*]'),
+// so the backdrop must not itself carry the close attribute. Explicit Close/Cancel buttons
+// keep their attributes; the generic handler already closes when the backdrop itself is clicked.
 function installModalInteractionGuard(){
   if(window.__kleenestModalInteractionGuardInstalled)return;
   window.__kleenestModalInteractionGuardInstalled=true;
-  document.addEventListener('click',function(event){
-    const overlay=event.target?.closest?.('.modal-overlay');
-    if(!overlay)return;
-    if(event.target===overlay)return;
-    const modal=event.target?.closest?.('.modal-box');
-    if(modal){event.stopPropagation();}
-  },true);
+  const sanitize=()=>document.querySelectorAll('.modal-overlay[data-close-modal],.modal-overlay[data-close-family]').forEach(overlay=>{
+    overlay.removeAttribute('data-close-modal');
+    overlay.removeAttribute('data-close-family');
+    overlay.dataset.kleenestBackdrop='true';
+  });
+  sanitize();
+  const observer=new MutationObserver(sanitize);
+  observer.observe(document.body,{childList:true,subtree:true});
+  window.__kleenestModalInteractionGuardObserver=observer;
 }
 
-async function boot(){try{await ensureAssets();installModalInteractionGuard();await window.KleenestAppBootstrap?.start?.();}catch(error){window.KleenestUI.reportError?.('runtime-assets',error);}}
+async function boot(){try{installModalInteractionGuard();await ensureAssets();await window.KleenestAppBootstrap?.start?.();}catch(error){window.KleenestUI.reportError?.('runtime-assets',error);}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();})();
