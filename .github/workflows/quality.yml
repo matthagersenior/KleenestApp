@@ -22,20 +22,14 @@ jobs:
           done
       - name: Validate JSON
         shell: bash
-        run: |
-          set -euo pipefail
-          node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
+        run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
       - name: Verify required app-shell files
         shell: bash
         run: |
           set -euo pipefail
-          for f in *.js index.html manifest.webmanifest sw.js capacitor.config.ts kleenest-supabase.js kleenest-supabase-runtime.js kleenest-account-lifecycle.js kleenest-account-ui.js privacy.html terms.html support.html icon-placeholder.svg; do
-            test -f "$f"
-          done
+          for f in *.js index.html manifest.webmanifest sw.js capacitor.config.ts kleenest-supabase.js kleenest-supabase-runtime.js kleenest-account-lifecycle.js kleenest-account-ui.js privacy.html terms.html support.html icon-placeholder.svg; do test -f "$f"; done
       - name: Verify manifest icon reference
-        run: |
-          test -f icon-placeholder.svg
-          grep -q 'icon-placeholder.svg' manifest.webmanifest
+        run: test -f icon-placeholder.svg && grep -q 'icon-placeholder.svg' manifest.webmanifest
       - name: Run runtime smoke checks
         run: node tests/kleenest-runtime-smoke.js
       - name: Run auth contract checks
@@ -80,3 +74,5 @@ jobs:
         run: node tests/route-feature-contract.js
       - name: Run modular surface-controller contract
         run: node tests/surface-controller-contract.js
+      - name: Run modular surface-domain contract
+        run: node tests/surface-domain-contract.js
