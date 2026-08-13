@@ -78,3 +78,5 @@ jobs:
         run: node tests/workflow-reward-contract.js
       - name: Run business growth and cross-surface relationship contract
         run: node tests/business-growth-contract.js
+      - name: Run business economic loop contract
+        run: node tests/business-economic-loop-contract.js
