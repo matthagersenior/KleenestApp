@@ -16,18 +16,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in *.js tests/*.js; do
-            [ -f "$f" ] || continue
-            node --check "$f"
-          done
+          for f in *.js tests/*.js; do [ -f "$f" ] || continue; node --check "$f"; done
       - name: Validate JSON
-        shell: bash
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
       - name: Verify required app-shell files
         shell: bash
         run: |
           set -euo pipefail
-          for f in *.js index.html manifest.webmanifest sw.js capacitor.config.ts kleenest-supabase.js kleenest-supabase-runtime.js kleenest-account-lifecycle.js kleenest-account-ui.js privacy.html terms.html support.html icon-placeholder.svg; do test -f "$f"; done
+          for f in *.js tests/*.js index.html manifest.webmanifest sw.js capacitor.config.ts kleenest-supabase.js kleenest-supabase-runtime.js kleenest-account-lifecycle.js kleenest-account-ui.js privacy.html terms.html support.html icon-placeholder.svg; do test -f "$f"; done
       - name: Verify manifest icon reference
         run: test -f icon-placeholder.svg && grep -q 'icon-placeholder.svg' manifest.webmanifest
       - name: Run runtime smoke checks
@@ -80,3 +76,5 @@ jobs:
         run: node tests/cross-surface-engagement-contract.js
       - name: Run workflow reward contract
         run: node tests/workflow-reward-contract.js
+      - name: Run business growth and cross-surface relationship contract
+        run: node tests/business-growth-contract.js
