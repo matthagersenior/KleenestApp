@@ -78,3 +78,5 @@ jobs:
         run: node tests/feature-ui-contract.js
       - name: Run route feature contract
         run: node tests/route-feature-contract.js
+      - name: Run modular surface-controller contract
+        run: node tests/surface-controller-contract.js
