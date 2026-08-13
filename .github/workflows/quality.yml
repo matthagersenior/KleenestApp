@@ -80,3 +80,9 @@ jobs:
         run: node tests/business-growth-contract.js
       - name: Run business economic loop contract
         run: node tests/business-economic-loop-contract.js
+      - name: Run cross-surface feature graph contract
+        run: node tests/feature-graph-contract.js
+      - name: Run single-use access contract
+        run: node tests/single-use-access-contract.js
+      - name: Run partnership access parity contract
+        run: node tests/partnership-access-parity-contract.js
