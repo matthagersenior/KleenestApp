@@ -1,17 +1,17 @@
-/* Lightweight production acceptance checks. Safe to load; exposes diagnostics only. */
+/* Lightweight production acceptance checks. Diagnostics only; authorization stays server-side. */
 (function(){'use strict';
  window.kleenestAcceptance={
   dependencies(){return {
-   supabase:!!window.kleenestSupabase,
-   preferredAccess:!!window.kleenestPreferredAccess,
-   preferredVisit:!!window.kleenestPreferredVisit,
-   visitTracking:!!window.kleenestVisitTracking,
+   supabase:!!window.KleenestSupabase,
+   preferredAccess:!!window.KleenestSupabase?.preferredEligibility,
+   preferredVisit:!!window.KleenestSupabase?.usePreferred,
+   visitTracking:!!window.KleenestSupabase?.verifyCheckin,
    businessAnalytics:!!window.kleenestBusinessAnalytics,
-   partnerPrograms:!!window.kleenestPartnerPrograms
+   partnerPrograms:!!window.kleenestBusinessAnalytics?.programUsage
   };},
-  async preferredEligibility(user,location){
-   if(!window.kleenestPreferredAccess?.eligible) return {ok:false,reason:'preferred_access_missing'};
-   return {ok:!!window.kleenestPreferredAccess.eligible(user,location)};
+  async preferredEligibility(locationId){
+   if(!window.KleenestSupabase?.preferredEligibility)return {ok:false,reason:'preferred_access_missing'};
+   try{return await window.KleenestSupabase.preferredEligibility(locationId);}catch(error){return {ok:false,reason:error?.message||'eligibility_check_failed'};}
   }
  };
 })();
