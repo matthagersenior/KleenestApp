@@ -70,3 +70,7 @@ jobs:
         run: node tests/demo-secrets-contract.js
       - name: Run fail-closed contract
         run: node tests/fail-closed-contract.js
+      - name: Run social/gamification/surface contract
+        run: node tests/social-gamification-contract.js
+      - name: Run gamification schema contract
+        run: node tests/gamification-schema-contract.js
