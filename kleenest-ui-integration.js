@@ -3,7 +3,7 @@
 async function ensureAssets(){const scripts=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js','kleenest-supabase.js','kleenest-auth.js','kleenest-runtime.js','kleenest-actions.js','kleenest-consumer-ui.js','kleenest-ui-actions.js','kleenest-business-actions.js','kleenest-business-render.js','kleenest-extracted-modules.js','kleenest-navigation.js','kleenest-location.js','kleenest-events.js','kleenest-app-bootstrap.js'];for(const src of scripts)await loadAsset('script',src);try{await loadAsset('link','kleenest-business-ui.css');await loadAsset('script','kleenest-business-ui.js');}catch(error){emit('action-error',{action:'business-ui-assets',error});}}
 window.KleenestUI.refreshLiveState=async reason=>window.KleenestLiveState?.refresh?.(reason)||null;
 window.KleenestUI.loadAccountState=async reason=>window.KleenestAccountState?.load?.(reason)||null;
-window.KleenestUI.loadBusinessState=async reason=>window.KleenestBusinessState?.load?.(reason)||null;
+window.KleenestUI.loadBusinessState=async reason=>window.KleenestBusinessState?.loadForCurrentUser?.(reason)||null;
 window.KleenestUI.loadRewardsHistory=async reason=>window.KleenestRewardsHistory?.load?.(50,reason)||null;
 async function boot(){try{await ensureAssets();await window.KleenestAppBootstrap?.start?.();}catch(error){window.KleenestUI.reportError?.('runtime-assets',error);}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();})();
