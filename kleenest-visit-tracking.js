@@ -1,4 +1,4 @@
-/* Kleenest Visit Tracking — creates the missing real-visit integration point. */
+/* Kleenest Visit Tracking — authoritative real-visit integration point. */
 (function(){
   'use strict';
   async function record(locationId, context){
@@ -6,7 +6,7 @@
     try {
       const {data,error}=await window.kleenestSupabase.rpc('record_location_visit',{p_location_id:locationId,p_context:context||{}});
       if(error) throw error;
-      if(window.kleenestPreferredVisit && typeof window.kleenestPreferredVisit.recordUse==='function') await window.kleenestPreferredVisit.recordUse(locationId);
+      // record_location_visit already increments Preferred usage atomically when applicable.
       return {ok:true,data};
     } catch(e){
       console.warn('[Kleenest] visit tracking unavailable:',e?.message||e);
