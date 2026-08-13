@@ -78,3 +78,5 @@ jobs:
         run: node tests/surface-domain-contract.js
       - name: Run cross-surface engagement contract
         run: node tests/cross-surface-engagement-contract.js
+      - name: Run workflow reward contract
+        run: node tests/workflow-reward-contract.js
