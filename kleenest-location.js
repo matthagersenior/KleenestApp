@@ -14,8 +14,9 @@
       emit('kleenest:location-updated',{location:current});resolve(current);
     },error=>{const detail={code:error.code,message:error.message,error};emit('kleenest:location-error',detail);reject(error);},opts));
   }
+  async function request(options){return getCurrentPosition(Object.assign({enableHighAccuracy:true,timeout:12000,maximumAge:300000},options||{}));}
   function get(){return current;}
   function validate(latitude,longitude){return valid(Number(latitude),Number(longitude));}
-  api.getCurrentPosition=getCurrentPosition;api.get=get;api.validate=validate;
+  api.getCurrentPosition=getCurrentPosition;api.request=request;api.get=get;api.validate=validate;
   window.KleenestUI=window.KleenestUI||{};window.KleenestUI.getCurrentLocation=getCurrentPosition;
 })();
