@@ -44,3 +44,5 @@ jobs:
         run: node tests/auth-contract.js
       - name: Run account lifecycle/UI checks
         run: node tests/account-contract.js
+      - name: Run app-shell/PWA safety checks
+        run: node tests/app-shell-contract.js
