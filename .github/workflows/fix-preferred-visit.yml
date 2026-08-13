@@ -1,0 +1,132 @@
+name: Fix Preferred Visit authorization
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Preferred Visit authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old="""function ensurePartnerProgram(r) {
+  if (!r) return;
+  if (!r.partnerProgram) {
+    r.partnerProgram = {
+      enabled: true,
+      preferredAccess: true,
+      matchDiscountBonus: 0,
+      customPerk: '',
+      coopAgreements: []
+    };"""
+          new="""function ensurePartnerProgram(r) {
+  if (!r) return;
+  if (!r.partnerProgram) {
+    r.partnerProgram = {
+      enabled: false,
+      preferredAccess: false,
+      matchDiscountBonus: 0,
+      customPerk: '',
+      coopAgreements: []
+    };"""
+          if old not in s: raise SystemExit('ensurePartnerProgram target not found')
+          s=s.replace(old,new,1)
+
+          needle="""function partnerBenefitsFor(user, restroom) {
+  const cTier = consumerPartnerTier(user);"""
+          repl="""function partnerBenefitsFor(user, restroom) {
+  if (window.kleenestPreferredAccess && !window.kleenestPreferredAccess.eligible(user, restroom)) return null;
+  const cTier = consumerPartnerTier(user);"""
+          if needle not in s: raise SystemExit('partnerBenefitsFor target not found')
+          s=s.replace(needle,repl,1)
+
+          start="""  const claimPartner = e.target.closest('[data-claim-partner]');
+  if (claimPartner) {
+    const user = currentUser();
+    if (!user) { alert('Log in first.'); return; }
+    if (!consumerPartnerTier(user)) { alert('Partner preferred access requires Premium, Fleet, or Enterprise.'); return; }
+    const rr = state.restrooms.find(x => x.id === claimPartner.dataset.claimPartner);
+    if (!rr) return;
+    const pb = partnerBenefitsFor(user, rr);
+    if (!pb) return;
+    grantPoints(user, 5);"""
+          repl2="""  const claimPartner = e.target.closest('[data-claim-partner]');
+  if (claimPartner) {
+    const user = currentUser();
+    if (!user) { alert('Log in first.'); return; }
+    const rr = state.restrooms.find(x => x.id === claimPartner.dataset.claimPartner);
+    if (!rr) return;
+    const access = window.kleenestPreferredAccess;
+    if (!access || !access.eligible(user, rr)) {
+      alert('Preferred Location access is only available through an active business partnership or benefit program connected to your account.');
+      return;
+    }
+    const pb = partnerBenefitsFor(user, rr);
+    if (!pb) return;
+    const tracker = window.kleenestPreferredVisit;
+    if (!tracker || typeof tracker.activate !== 'function') {
+      alert('Preferred Location verification is unavailable. No activation was recorded.');
+      return;
+    }
+    tracker.activate(user, rr).then(tracked => {
+      if (!tracked || !tracked.ok) {
+        alert('We could not verify this Preferred Location benefit. No activation was recorded.');
+        return;
+      }
+      grantPoints(user, 5);"""
+          if start not in s: raise SystemExit('claimPartner start not found')
+          s=s.replace(start,repl2,1)
+          # Close the new Promise callback immediately before the original render path.
+          oldtail="""    save();
+    alert(`✓ ${pb.access} activated\\n${pb.discountPct}% partner rate\\n\\nShow this confirmation to staff (demo).\\nPerks:\\n• ${pb.perks.slice(0, 3).join('\\n• ')}`);
+    render();
+    return;
+  }
+
+  // Join membership club"""
+          newtail="""      save();
+      alert(`✓ ${pb.access} activated\\n${pb.discountPct}% partner rate\\n\\nShow this confirmation to staff (demo).\\nPerks:\\n• ${pb.perks.slice(0, 3).join('\\n• ')}`);
+      render();
+    });
+    return;
+  }
+
+  // Join membership club"""
+          if oldtail not in s: raise SystemExit('claimPartner tail not found')
+          s=s.replace(oldtail,newtail,1)
+
+          # Preferred usage is recorded only when a real eligible program-backed user starts a visit.
+          oldvisit="""    startVisitSession(r, user);
+    render();
+    return;"""
+          newvisit="""    startVisitSession(r, user);
+    if (window.kleenestPreferredAccess && window.kleenestPreferredAccess.eligible(user, r) && window.kleenestPreferredVisit) {
+      window.kleenestPreferredVisit.recordUse(r.id);
+    }
+    render();
+    return;"""
+          if oldvisit not in s: raise SystemExit('startVisit target not found')
+          s=s.replace(oldvisit,newvisit,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Verify JavaScript
+        run: |
+          set -euo pipefail
+          node --check kleenest-partner-access.js
+          node --check kleenest-preferred-visit.js
+          grep -q 'Preferred Location access is only available through an active business partnership' index.html
+          grep -q 'enabled: false' index.html
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Enforce partnership-backed Preferred Visit activation'
+          git push
