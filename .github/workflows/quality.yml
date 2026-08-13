@@ -68,3 +68,5 @@ jobs:
         run: node tests/critical-file-contract.js
       - name: Run demo-secret boundary contract
         run: node tests/demo-secrets-contract.js
+      - name: Run fail-closed contract
+        run: node tests/fail-closed-contract.js
