@@ -1,0 +1,12 @@
+{
+  "name": "Kleenest",
+  "short_name": "Kleenest",
+  "description": "Find, review, and improve restroom cleanliness and accessibility.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0f766e",
+  "icons": []
+}
