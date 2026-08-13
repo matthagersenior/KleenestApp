@@ -54,3 +54,5 @@ jobs:
         run: node tests/supabase-boundary-contract.js
       - name: Run legacy production boundary checks
         run: node tests/legacy-production-boundary.js
+      - name: Run production index boundary checks
+        run: node tests/production-index-boundary.js
