@@ -76,3 +76,5 @@ jobs:
         run: node tests/surface-controller-contract.js
       - name: Run modular surface-domain contract
         run: node tests/surface-domain-contract.js
+      - name: Run cross-surface engagement contract
+        run: node tests/cross-surface-engagement-contract.js
