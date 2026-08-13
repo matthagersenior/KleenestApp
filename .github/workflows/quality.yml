@@ -50,6 +50,10 @@ jobs:
         run: node tests/app-shell-contract.js
       - name: Run modular parity checks
         run: node tests/modular-parity-contract.js
+      - name: Run acceptance harness checks
+        run: node tests/acceptance-contract.js
+      - name: Run runtime health checks
+        run: node tests/runtime-health-contract.js
       - name: Run Supabase boundary checks
         run: node tests/supabase-boundary-contract.js
       - name: Run legacy production boundary checks
