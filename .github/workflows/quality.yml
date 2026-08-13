@@ -16,7 +16,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in *.js; do
+          for f in *.js tests/*.js; do
             [ -f "$f" ] || continue
             node --check "$f"
           done
@@ -38,3 +38,5 @@ jobs:
           set -euo pipefail
           test -f icon-placeholder.svg
           grep -q 'icon-placeholder.svg' manifest.webmanifest
+      - name: Run runtime smoke checks
+        run: node tests/kleenest-runtime-smoke.js
