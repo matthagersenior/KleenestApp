@@ -12,5 +12,5 @@
   window.KleenestRuntime.redeemPromotion=(promotionId,locationId)=>rpc('redeem_promotion',{p_promotion_id:promotionId,p_location_id:locationId||null});
   window.KleenestRuntime.markNotificationRead=(notificationId)=>rpc('mark_notification_read',{p_notification_id:notificationId});
   window.KleenestRuntime.replyToReview=(reviewId,reply)=>rpc('reply_to_review',{p_review_id:reviewId,p_reply:reply});
-  window.KleenestRuntime.signOut=async()=>{if(!window.KleenestSupabase?.signOut)throw new Error('Supabase is not ready.');return window.KleenestSupabase.signOut();};
+  window.KleenestRuntime.signOut=async()=>window.KleenestAuth?.signOut?window.KleenestAuth.signOut():window.KleenestSupabase.signOut();
 })();
