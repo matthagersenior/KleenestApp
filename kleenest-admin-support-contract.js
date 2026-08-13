@@ -1,0 +1,2 @@
+/* Admin-facing support triage contract. */
+(function(){'use strict';const A=window.KleenestAdminSupport=window.KleenestAdminSupport||{};A.statuses=['queued','open','in_progress','waiting_user','resolved','closed'];A.priorities=['low','normal','high','critical'];A.canTriage=user=>!!(user&&(user.isAdmin||user.accountRole==='admin'||user.role==='super_admin'));A.assign=(user,ticket,assignee)=>{if(!A.canTriage(user))throw new Error('Admin authorization required');return {...ticket,assignee,status:ticket.status||'open',updatedAt:new Date().toISOString()};};})();
