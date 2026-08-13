@@ -16,7 +16,7 @@ jobs:
       - name: Checkout current branch
         uses: actions/checkout@v4
 
-      - name: Extract VIEWS block from current index.html
+      - name: Extract VIEWS block from current index.html when still inline
         shell: bash
         run: |
           set -euo pipefail
@@ -28,40 +28,60 @@ jobs:
           end_marker='/* ========== MODALS ========== */'
           start=s.find(start_marker)
           end=s.find(end_marker,start)
-          if start < 0 or end < 0 or end <= start:
-              raise SystemExit('Could not locate VIEWS/MODALS boundaries in current index.html')
-          module=s[start:end]
-          Path('kleenest-views.js').write_text(module,encoding='utf-8')
-          new=s[:start]+s[end:]
-          anchor='<script src="kleenest-ui-integration.js"></script>'
-          loader='<script src="kleenest-views.js"></script>'
-          if loader not in new:
-              if anchor not in new:
-                  raise SystemExit('Could not find UI integration script anchor')
-              new=new.replace(anchor,anchor+'\n'+loader,1)
-          p.write_text(new,encoding='utf-8')
-          print(f'Extracted {len(module.encode("utf-8")):,} bytes')
-          print(f'New index size: {len(new.encode("utf-8")):,} bytes')
+          if start >= 0 and end > start:
+              module=s[start:end]
+              Path('kleenest-views.js').write_text(module,encoding='utf-8')
+              s=s[:start]+s[end:]
+              anchor='<script src="kleenest-ui-integration.js"></script>'
+              loader='<script src="kleenest-views.js"></script>'
+              if loader not in s:
+                  if anchor not in s:
+                      raise SystemExit('Could not find UI integration script anchor')
+                  s=s.replace(anchor,anchor+'\n'+loader,1)
+              p.write_text(s,encoding='utf-8')
+              print(f'Extracted {len(module.encode("utf-8")):,} bytes')
+          else:
+              print('VIEWS block already extracted; leaving kleenest-views.js unchanged.')
           PY
 
-      - name: Verify extraction
+      - name: Install partnership guard into index.html
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          loader='<script src="kleenest-partner-access.js"></script>'
+          if loader not in s:
+              anchor='<script src="kleenest-views.js"></script>'
+              if anchor not in s:
+                  raise SystemExit('Could not find kleenest-views.js loader')
+              s=s.replace(anchor,anchor+'\n'+loader,1)
+              p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Verify
         run: |
           set -euo pipefail
           test -s kleenest-views.js
+          test -s kleenest-partner-access.js
           grep -q '<script src="kleenest-views.js"></script>' index.html
+          grep -q '<script src="kleenest-partner-access.js"></script>' index.html
           ! grep -q '/\* ========== VIEWS ========== \*/' index.html
           node --check kleenest-views.js
-          echo 'Pass 9 extraction verified.'
+          node --check kleenest-partner-access.js
+          echo 'Pass 9 + partnership guard verified.'
 
       - name: Commit results
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html kleenest-views.js
+          git add index.html kleenest-views.js kleenest-partner-access.js
           if git diff --cached --quiet; then
             echo 'No changes to commit.'
             exit 0
           fi
-          git commit -m 'Extract VIEWS into kleenest-views.js'
+          git commit -m 'Gate preferred locations by partner programs'
           git push
