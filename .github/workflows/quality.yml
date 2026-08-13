@@ -1,0 +1,37 @@
+name: Kleenest Quality
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in *.js; do
+            [ -f "$f" ] || continue
+            node --check "$f"
+          done
+      - name: Validate JSON
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
+      - name: Verify required app-shell files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f index.html
+          test -f manifest.webmanifest
+          test -f sw.js
+          test -f capacitor.config.ts
+          test -f kleenest-supabase.js
+          test -f kleenest-supabase-runtime.js
