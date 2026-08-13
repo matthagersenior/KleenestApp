@@ -1,18 +1,18 @@
 # Kleenest Demo / Reference App
 
-The legacy monolithic UI is retained as a development reference while the modular application reaches feature parity.
+This branch, `demo/legacy-monolith`, preserves the full monolithic application entrypoint from the refactor baseline as a working reference/demo environment.
 
 ## Purpose
 
 - Compare behavior against the modular production app.
 - Reproduce legacy workflows while migrating features.
-- Provide a stable visual/interaction reference during refactoring.
-- Never treat legacy local authentication or local-only state as production authority.
+- Preserve a known-working visual/interaction reference.
+- Stress-test changes without making the monolith the permanent production architecture.
+
+## Important
+
+The monolith contains legacy/local demo authentication and local data behavior. It is **not** the production authentication or data authority. Never put real credentials in this branch.
 
 ## Graduation rule
 
-When the modular app passes the exhaustive acceptance/stress suite, the legacy implementation can be moved fully behind this demo surface or retained as a development-only artifact. Production `index.html` should remain the modular application entry point after migration.
-
-## Security
-
-Do not place real credentials in this directory. Demo credentials belong in the controlled demo environment, never in source control.
+Once the modular app passes feature-parity acceptance and the exhaustive stress/regression suite, production `index.html` can become modular while this branch remains available as the regression/reference environment.
