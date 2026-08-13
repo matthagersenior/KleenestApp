@@ -7,5 +7,20 @@ window.KleenestUI.loadBusinessState=async reason=>window.KleenestBusinessState?.
 window.KleenestUI.loadRewardsHistory=async reason=>window.KleenestRewardsHistory?.load?.(50,reason)||null;
 window.KleenestUI.loadGamification=async root=>window.KleenestCommunityUI?.renderGamification?.(root)||null;
 window.KleenestUI.loadCommunity=async root=>window.KleenestCommunityUI?.renderSocial?.(root)||null;
-async function boot(){try{await ensureAssets();await window.KleenestAppBootstrap?.start?.();}catch(error){window.KleenestUI.reportError?.('runtime-assets',error);}}
+
+// Modal interaction guard: overlay close markers must never treat clicks on modal children as backdrop clicks.
+// The monolith/index currently uses delegated closest() handlers, so stop those clicks before they bubble.
+function installModalInteractionGuard(){
+  if(window.__kleenestModalInteractionGuardInstalled)return;
+  window.__kleenestModalInteractionGuardInstalled=true;
+  document.addEventListener('click',function(event){
+    const overlay=event.target?.closest?.('.modal-overlay');
+    if(!overlay)return;
+    if(event.target===overlay)return;
+    const modal=event.target?.closest?.('.modal-box');
+    if(modal){event.stopPropagation();}
+  },true);
+}
+
+async function boot(){try{await ensureAssets();installModalInteractionGuard();await window.KleenestAppBootstrap?.start?.();}catch(error){window.KleenestUI.reportError?.('runtime-assets',error);}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();})();
