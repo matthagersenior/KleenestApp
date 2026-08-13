@@ -1,26 +1,29 @@
-/* Kleenest Preferred Visit — authoritative UI/action bridge.
- * A Preferred Location exists only when the user has an eligible tier AND
- * an actual active business/program connection. Never infer eligibility
- * from tier alone.
- */
+/* Kleenest Preferred Visit — server-authoritative UI/action bridge. */
 (function () {
   'use strict';
 
-  function eligible(user, location) {
-    return !!(window.kleenestPreferredAccess && window.kleenestPreferredAccess.eligible(user, location));
+  async function authorize(locationId) {
+    if (window.kleenestPreferredAuthority?.check) {
+      return window.kleenestPreferredAuthority.check(locationId);
+    }
+    return { eligible: false, reason: 'authorization_layer_missing' };
   }
 
   async function activate(user, location) {
-    if (!eligible(user, location)) {
-      return { ok: false, reason: 'not_eligible' };
+    const locationId = location?.id;
+    if (!locationId) return { ok: false, reason: 'missing_location' };
+    const auth = await authorize(locationId);
+    if (!auth?.eligible) return { ok: false, reason: auth?.reason || 'not_eligible' };
+    try {
+      const result = await window.kleenestPreferredAuthority.activate(
+        locationId,
+        location?.partnerProgram?.id || auth.partner_program_id || null
+      );
+      return result ? { ok: true, data: result } : { ok: false, reason: 'activation_failed' };
+    } catch (err) {
+      console.warn('[Kleenest] Preferred activation failed:', err?.message || err);
+      return { ok: false, reason: 'activation_failed' };
     }
-    const program = location && location.partnerProgram;
-    const tracker = window.kleenestRecordPreferredActivation;
-    if (typeof tracker !== 'function') {
-      return { ok: false, reason: 'tracking_unavailable' };
-    }
-    const result = await tracker(location.id, program && program.id);
-    return result ? { ok: true, data: result } : { ok: false, reason: 'activation_failed' };
   }
 
   async function recordUse(locationId) {
@@ -38,5 +41,5 @@
     }
   }
 
-  window.kleenestPreferredVisit = { eligible, activate, recordUse };
+  window.kleenestPreferredVisit = { authorize, activate, recordUse };
 })();
