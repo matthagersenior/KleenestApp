@@ -76,3 +76,5 @@ jobs:
         run: node tests/gamification-schema-contract.js
       - name: Run feature completion contract
         run: node tests/feature-completion-contract.js
+      - name: Run feature UI integration contract
+        run: node tests/feature-ui-contract.js
