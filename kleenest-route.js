@@ -1,0 +1,11 @@
+/* Modular route planning domain: navigation, stop goals and gamified completion. */
+(function(){'use strict';
+ const K=window.KleenestRoute=window.KleenestRoute||{};
+ const rpc=async(name,args={})=>{const api=window.KleenestSupabase;if(!api||typeof api.rpc!=='function')throw new Error('Supabase route boundary unavailable');return api.rpc(name,args)};
+ K.create=(name,start,end,distanceMiles,minutes)=>rpc('create_route_plan',{p_name:name,p_start_lat:start?.lat,p_start_lng:start?.lng,p_end_lat:end?.lat,p_end_lng:end?.lng,p_distance_miles:distanceMiles,p_estimated_minutes:minutes});
+ K.complete=(routeId)=>rpc('complete_route',{p_route_id:routeId});
+ K.scoreRoute=(distanceMiles=0,stops=0)=>Math.max(10,Math.min(250,Math.round(distanceMiles*10)+stops*15));
+ K.routePlan={stops:[],distanceMiles:0,estimatedMinutes:0,pointsPreview:0};
+ K.buildPlan=(stops=[],distanceMiles=0,estimatedMinutes=0)=>{K.routePlan={stops:[...stops],distanceMiles,estimatedMinutes,pointsPreview:K.scoreRoute(distanceMiles,stops.length)};return K.routePlan};
+ K.renderRouteCard=(root,plan=K.routePlan)=>{if(!root)return;root.innerHTML=`<section class="card card-pad route-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h2 class="page-title">🛣️ Route</h2><p class="profile-sub">Turn a clean-restroom trip into progress, points and achievements.</p></div><span class="badge premium">+${plan.pointsPreview} pts</span></div><div class="stat-grid" style="margin-top:14px"><div class="stat-card"><span class="ic">📍</span><div class="val">${plan.stops.length}</div><div class="lb">Stops</div></div><div class="stat-card"><span class="ic">🛣️</span><div class="val">${Number(plan.distanceMiles||0).toFixed(1)}</div><div class="lb">Miles</div></div><div class="stat-card"><span class="ic">⏱️</span><div class="val">${Math.max(0,plan.estimatedMinutes||0)}</div><div class="lb">Minutes</div></div><div class="stat-card"><span class="ic">🏅</span><div class="val">+${plan.pointsPreview}</div><div class="lb">Route points</div></div></div><div class="message-banner info" style="margin-top:14px">Complete eligible stops and finish the route to earn server-authoritative points. Route progress can contribute to badges, streaks and contests.</div></section>`};
+})();
