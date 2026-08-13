@@ -2,7 +2,7 @@
 (function(){'use strict';
   const assets=[
     'kleenest-business.js','kleenest-business-state.js','kleenest-rewards-history.js','kleenest-live-state.js','kleenest-account-state.js','kleenest-account-ui.js','kleenest-notifications-ui.js',
-    'kleenest-customer-programs.js','kleenest-partner-access.js','kleenest-program-scope.js','kleenest-fleet-enterprise.js','kleenest-preferred-visit.js','kleenest-visit-tracking.js',
+    'kleenest-customer-programs.js','kleenest-partner-access.js','kleenest-program-scope.js','kleenest-fleet-enterprise.js','kleenest-preferred-visit.js','kleenest-visit-tracking.js','kleenest-legacy-preferred-guard.js',
     'kleenest-business-analytics.js','kleenest-partner-program-admin.js','kleenest-partner-agreements.js','kleenest-enrollment.js','kleenest-benefit-swap.js','kleenest-preferred-history.js',
     'kleenest-business-program-panel.js','kleenest-business-analytics-panel.js','kleenest-benefit-center.js','kleenest-program-scope-panel.js','kleenest-acceptance-checks.js','kleenest-production-checklist.js'
   ];
