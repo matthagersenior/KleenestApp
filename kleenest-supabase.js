@@ -12,10 +12,12 @@
  async function businessMemberships(){const s=await session();if(!s)return [];const {data,error}=await getClient().from('business_members').select('*, businesses(*)').eq('user_id',s.user.id);if(error)throw error;return data||[];}
  async function ensureProfile(){return rpc('ensure_current_user_profile');}
  async function ensureDemoMembership(){return rpc('ensure_current_user_demo_membership');}
- async function provision(){const s=await session();if(!s)return null;const p=await ensureProfile();let d=[];try{d=await ensureDemoMembership();}catch(e){console.warn('Demo provisioning skipped:',e);}return {session:s,profile:p,demoMemberships:d};}
+ async function provision(){const s=await session();if(!s)return null;const p=await ensureProfile();let d=[];if(window.KleenestDemoMode===true){try{d=await ensureDemoMembership();}catch(e){console.warn('Demo provisioning skipped:',e);}}return {session:s,profile:p,demoMemberships:d};}
+ function enableDemoMode(){window.KleenestDemoMode=true;return true;}
+ function disableDemoMode(){window.KleenestDemoMode=false;return true;}
  async function preferredEligibility(locationId){return rpc('check_preferred_eligibility',{p_location_id:locationId});}
  async function activatePreferred(locationId,programId){return rpc('activate_preferred_location',{p_location_id:locationId,p_partner_program_id:programId||null});}
  async function usePreferred(locationId){return rpc('record_preferred_location_use',{p_location_id:locationId});}
  async function createBusiness(name,address,phone,website,type){return rpc('create_business_for_current_user',{p_name:name,p_address:address,p_phone:phone||null,p_website:website||null,p_type:type||'other'});}
- window.KleenestSupabase={getClient,client:getClient,session,signIn,signUp,signOut,rpc,profile,businessMemberships,ensureProfile,ensureDemoMembership,provision,preferredEligibility,activatePreferred,usePreferred,createBusiness};
+ window.KleenestSupabase={getClient,client:getClient,session,signIn,signUp,signOut,rpc,profile,businessMemberships,ensureProfile,ensureDemoMembership,provision,enableDemoMode,disableDemoMode,preferredEligibility,activatePreferred,usePreferred,createBusiness};
 })();
