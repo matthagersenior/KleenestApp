@@ -52,3 +52,5 @@ jobs:
         run: node tests/modular-parity-contract.js
       - name: Run Supabase boundary checks
         run: node tests/supabase-boundary-contract.js
+      - name: Run legacy production boundary checks
+        run: node tests/legacy-production-boundary.js
