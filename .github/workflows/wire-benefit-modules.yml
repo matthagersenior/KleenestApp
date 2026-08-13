@@ -1,0 +1,37 @@
+name: Wire benefit modules
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire modules idempotently
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+from pathlib import Path
+p=Path('index.html'); s=p.read_text(encoding='utf-8')
+anchor='<script src="kleenest-partner-access.js"></script>'
+modules=['kleenest-preferred-visit.js','kleenest-business-analytics.js','kleenest-preferred-benefit-card.js','kleenest-partner-program-admin.js','kleenest-business-program-panel.js','kleenest-preferred-history.js','kleenest-visit-tracking.js','kleenest-acceptance-checks.js','kleenest-business-analytics-panel.js','kleenest-benefit-center.js','kleenest-customer-programs.js']
+if anchor not in s: raise SystemExit('partner access script anchor not found')
+missing=[m for m in modules if f'<script src="{m}"></script>' not in s]
+if missing: s=s.replace(anchor,anchor+'\n'+'\n'.join(f'<script src="{m}"></script>' for m in missing),1)
+p.write_text(s,encoding='utf-8')
+print('wired',len(missing),'modules')
+PY
+      - name: Verify JavaScript modules
+        run: |
+          set -euo pipefail
+          for f in kleenest-partner-access.js kleenest-preferred-visit.js kleenest-business-analytics.js kleenest-preferred-benefit-card.js kleenest-partner-program-admin.js kleenest-business-program-panel.js kleenest-preferred-history.js kleenest-visit-tracking.js kleenest-acceptance-checks.js kleenest-business-analytics-panel.js kleenest-benefit-center.js kleenest-customer-programs.js; do test -s "$f"; node --check "$f"; done
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then echo 'No wiring changes'; exit 0; fi
+          git commit -m 'Wire benefit and visit modules'
+          git push
