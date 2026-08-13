@@ -64,3 +64,7 @@ jobs:
         run: node tests/production-index-contract.js
       - name: Run release gate contract
         run: node tests/release-gate-contract.js
+      - name: Run critical-file contract
+        run: node tests/critical-file-contract.js
+      - name: Run demo-secret boundary contract
+        run: node tests/demo-secrets-contract.js
