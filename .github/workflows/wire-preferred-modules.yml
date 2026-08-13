@@ -1,0 +1,43 @@
+name: Wire Preferred Location modules
+on:
+  push:
+    branches: [refactor/monolith-removal]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire modules into index
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+from pathlib import Path
+p=Path('index.html'); s=p.read_text(encoding='utf-8')
+mods=['kleenest-partner-access.js','kleenest-preferred-authority.js','kleenest-preferred-visit.js','kleenest-preferred-benefit-card.js','kleenest-preferred-history.js','kleenest-business-analytics.js','kleenest-partner-program-admin.js','kleenest-business-program-panel.js']
+anchor='</body>'
+if anchor not in s: raise SystemExit('index.html missing body close')
+missing=[m for m in mods if f'<script src="{m}"></script>' not in s]
+if missing:
+    tags='\n'.join(f'<script src="{m}"></script>' for m in missing)
+    s=s.replace(anchor,tags+'\n'+anchor,1)
+    p.write_text(s,encoding='utf-8')
+    print('Wired:',', '.join(missing))
+else:
+    print('All Preferred modules already wired')
+PY
+      - name: Verify module files and syntax
+        run: |
+          set -euo pipefail
+          for f in kleenest-partner-access.js kleenest-preferred-authority.js kleenest-preferred-visit.js kleenest-preferred-benefit-card.js kleenest-preferred-history.js kleenest-business-analytics.js kleenest-partner-program-admin.js kleenest-business-program-panel.js; do test -s "$f"; node --check "$f"; grep -q "<script src=\"$f\"></script>" index.html; done
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Wire preferred location and business benefit modules'
+          git push
