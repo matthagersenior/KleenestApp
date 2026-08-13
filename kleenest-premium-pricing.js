@@ -1,0 +1,2 @@
+/* Canonical consumer pricing contract: Free with ads, Premium lifetime for $5 once. */
+(function(){'use strict';const P=window.KleenestPremiumPricing=window.KleenestPremiumPricing||{};P.free={ads:true,recurring:false};P.premium={priceUSD:5,oneTime:true,recurring:false,ads:false,productId:'kleenest_premium_lifetime'};P.copy={free:'Free with ads',premium:'Premium — $5 one time'};P.prompt=feature=>({feature,priceUSD:5,oneTime:true,message:'Upgrade to Premium for $5 one time to unlock this feature and remove ads.'});})();
