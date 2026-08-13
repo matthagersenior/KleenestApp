@@ -12,5 +12,6 @@
   async function session(){const {data,error}=await getClient().auth.getSession();if(error)throw error;return data.session;}
   async function signOut(){const {error}=await getClient().auth.signOut();if(error)throw error;return true;}
   async function rpc(name,args){const {data,error}=await getClient().rpc(name,args||{});if(error)throw error;return data;}
-  window.KleenestSupabase={getClient,session,signOut,rpc};
+  async function businessMemberships(){const s=await session();if(!s)return [];const {data,error}=await getClient().from('business_members').select('*, businesses(*)').eq('user_id',s.user.id);if(error)throw error;return data||[];}
+  window.KleenestSupabase={getClient,client:getClient,session,signOut,rpc,businessMemberships};
 })();
