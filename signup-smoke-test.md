@@ -1,0 +1,1 @@
+Signup smoke test contract: email field, password field, submit, Supabase signUp, session/email-confirmation handling, profile provisioning.
