@@ -1,0 +1,2 @@
+/* Critical web-flow regression contract. Run in CI/browser smoke harness. */
+(function(){'use strict';const C=window.KleenestCriticalFlowRegression=window.KleenestCriticalFlowRegression||{};C.check=()=>({authShield:!!window.KleenestAuthInteractionShield,signupController:!!window.KleenestAuthSignup,publicBathroomDiscovery:!!window.KleenestPublicBathroomDiscovery,mapDiscovery:!!window.KleenestMapDiscovery});C.assert=()=>{const r=C.check();for(const [k,v] of Object.entries(r))if(!v)throw new Error('Critical module missing: '+k);return r;};})();
