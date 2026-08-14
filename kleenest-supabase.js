@@ -8,7 +8,7 @@
  async function ensureSignupProfile({displayName='',username='',avatarUrl='',bio='',demo=true}={}){return rpc('ensure_signup_profile',{p_display_name:displayName||null,p_username:username||null,p_avatar_url:avatarUrl||null,p_bio:bio||null,p_is_demo_test:!!demo});}
  async function signOut(){const {error}=await getClient().auth.signOut();if(error)throw error;return true;}
  async function rpc(name,args){const {data,error}=await getClient().rpc(name,args||{});if(error)throw error;return data;}
- async function nearbyLocations(lat,lng,miles=25){const {data,error}=await getClient().rpc('nearby_locations',{p_lat:Number(lat),p_lng:Number(lng),p_radius_miles:Number(miles)});if(error)throw error;return data||[];}
+ async function nearbyLocations(lat,lng,miles=25,limit=500){const radiusMeters=Math.max(100,Math.round(Number(miles)*1609.344));const {data,error}=await getClient().rpc('nearby_locations',{lat:Number(lat),lng:Number(lng),radius_meters:radiusMeters,limit_count:Number(limit)});if(error)throw error;return data||[];}
  async function businessMemberships(){const s=await session();if(!s)return [];const {data,error}=await getClient().from('business_members').select('*, businesses(*)').eq('user_id',s.user.id);if(error)throw error;return data||[];}
  window.KleenestSupabase={getClient,client:getClient,session,signUp,ensureSignupProfile,signOut,rpc,nearbyLocations,nearby_locations:nearbyLocations,businessMemberships};
 })();
