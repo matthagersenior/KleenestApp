@@ -8,7 +8,7 @@ async function ensureAssets(){
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
     'kleenest-auth-interaction-shield.js','kleenest-supabase.js','kleenest-auth.js','kleenest-auth-signup-controller.js','kleenest-signup-delegated-handler.js',
     'kleenest-maps.js','kleenest-route.js','kleenest-maps-compat.js','kleenest-map-runtime-compat.js','kleenest-runtime.js','kleenest-events.js','kleenest-navigation.js',
-    'kleenest-location.js','kleenest-map-discovery-bootstrap.js','kleenest-public-bathroom-discovery.js','kleenest-views.js','kleenest-app-bootstrap.js'
+    'kleenest-location.js','kleenest-map-discovery-bootstrap.js','kleenest-public-bathroom-discovery.js','kleenest-map-category-filters.js','kleenest-views.js','kleenest-app-bootstrap.js'
   ];
   const optional=['kleenest-actions.js','kleenest-action-dispatcher.js','kleenest-consumer-ui.js','kleenest-ui-actions.js','kleenest-business-actions.js','kleenest-business-action-dispatcher.js','kleenest-business-render.js','kleenest-extracted-modules.js','kleenest-surface-actions.js','kleenest-platform-adapter.js','kleenest-demo-environment.js','kleenest-monolith-audit.js','kleenest-gamification.js','kleenest-social.js','kleenest-community-ui.js','kleenest-premium-entitlement.js','kleenest-premium-engagement.js','kleenest-enterprise-partner-intelligence.js','kleenest-partner-campaigns.js','kleenest-partner-allocation.js','kleenest-auth-modal-touch-fix.js','kleenest-auth-modal-hardening.js'];
   for(const src of scripts)await loadAsset('script',src);
