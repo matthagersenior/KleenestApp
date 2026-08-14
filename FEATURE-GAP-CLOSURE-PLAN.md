@@ -4,7 +4,20 @@
 
 `main` is the legacy feature baseline. `refactor/monolith-removal` is production. The modular app must reproduce the useful customer and business behavior of the legacy app while moving durable state and permissions to Supabase.
 
-The legacy application contains customer discovery, map/category discovery, route planning, details/reviews, photos, QR check-in, social/community, games, contests, rewards, accounts, subscriptions, business operations, multi-location management, promotions, events, membership clubs, partner programs, rental/single-use access, occupancy, verification and admin controls. It also contains business metrics, traffic attribution, cleanliness trends, portfolio comparisons, exports, and business media/VR concepts.
+The legacy application contains customer discovery, map/category discovery, route planning, details/reviews, photos, QR check-in, social/community, games, contests, rewards, accounts, subscriptions, business operations, multi-location management, promotions, events, membership clubs, partner programs, rental/single-use access, occupancy, verification and admin controls. It also contains business metrics, traffic attribution, cleanliness trends, portfolio comparisons, exports, and business media/VR concepts. The comparison baseline is maintained by comparing `demo/legacy-monolith` against `refactor/monolith-removal`, not by assuming the modular implementation is complete because a similarly named button exists.
+
+## Current parity status
+
+This pass closes the Social/Game runtime gap identified in the monolith comparison:
+- Social and gamification services are now loaded by production `index.html` before the modular shell.
+- The Social surface gets a public Game Center parity layer.
+- Published games are visible to everyone and are not Premium-gated.
+- Leaderboards and contests remain publicly visible.
+- Contest participation is Premium-gated in the UI and Supabase RPC layer.
+- Contest-entry points are idempotent instead of being awarded repeatedly on duplicate joins.
+- Follow points are idempotent instead of being awarded repeatedly for the same relationship.
+- Your `matthagersr@gmail.com` account is recognized as fully authorized for testing.
+- The database-side Premium check uses `raw_app_meta_data` rather than user-editable metadata for authorization.
 
 ## Gap matrix
 
@@ -67,11 +80,11 @@ Members can have read/operational permissions without mutation authority. UI gat
 - Location-linked posts.
 - Photo upload from camera/gallery.
 - Moderation/reporting.
-- Games visible to everyone.
-- Leaderboards visible to everyone.
-- Contests visible to everyone.
-- Participation gates enforced by subscription/account role.
-- Contest actions sourced from authoritative events, not browser counters.
+- Games visible to everyone. **Completed this pass.**
+- Leaderboards visible to everyone. **Completed this pass.**
+- Contests visible to everyone. **Completed this pass.**
+- Participation gates enforced by subscription/account role. **Contest gate completed server-side; remaining competitive flows stay on parity backlog.**
+- Contest actions sourced from authoritative events, not browser counters. **Completed for contest join/entry.**
 
 ### P1 — business media
 Business Owner/Admin:
@@ -154,7 +167,7 @@ Every dataset needs time range, location scope, comparison period where meaningf
 - Reviews and photos.
 - Favorites.
 - Rewards history.
-- Games.
+- Games. **Core Game Center now wired into Social.**
 - Contests.
 - Leaderboards.
 - Social.
@@ -168,7 +181,7 @@ Every dataset needs time range, location scope, comparison period where meaningf
 2. Stabilize Supabase data boundaries and role checks.
 3. Finish media/storage migration (started in this pass).
 4. Finish QR → event → social/gamification → business analytics pipeline.
-5. Finish Social parity and photo posting.
+5. Finish Social parity and photo posting. **Game/public social portion advanced this pass.**
 6. Finish Business CRUD with Owner/Admin mutation gates.
 7. Finish Campaign/Promotion/Offer attribution.
 8. Finish Partner Network/partnership lifecycle.
@@ -190,13 +203,6 @@ A feature is not considered migrated when a button exists. It is migrated only w
 - the modular shell remains intact;
 - no legacy/monolith renderer is required.
 
-## Current pass
+## Next implementation pass
 
-Completed foundation:
-- Storage metadata fields for location/review/social media.
-- Storage MIME and size limits.
-- Size-aware media service with client-side compression.
-- Photo/VR upload helpers and durable Storage paths.
-- Durable social media metadata support.
-
-Next implementation pass should wire the existing Business/Social/QR UI to these durable media and event boundaries, then replace remaining browser-local demo counters with authoritative Supabase analytics.
+Wire the existing QR/business/social surfaces to the authoritative event pipeline, then move into Business CRUD/permissions and replace seeded business analytics with real event aggregations. Continue comparing against the legacy monolith after every feature batch.
