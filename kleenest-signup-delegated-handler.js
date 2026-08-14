@@ -1,0 +1,6 @@
+/* Delegated signup form bridge. Keeps signup submission independent from modal dismissal. */
+(function(){'use strict';
+ const A=window.KleenestSignupDelegated=window.KleenestSignupDelegated||{};
+ A.bind=()=>{if(A.bound)return;A.bound=true;document.addEventListener('submit',async e=>{const form=e.target.closest?.('form[data-auth-form="signup"],form[data-signup-form],#signup-form');if(!form)return;e.preventDefault();e.stopImmediatePropagation();const email=form.querySelector('[name="email"],input[type="email"]')?.value?.trim();const password=form.querySelector('[name="password"],input[type="password"]')?.value||'';const name=form.querySelector('[name="display_name"],[name="name"]')?.value?.trim()||'';const controller=window.KleenestAuthSignup;if(!controller?.submit){form.dispatchEvent(new CustomEvent('kleenest:signup-form-error',{bubbles:true,detail:{error:new Error('Signup controller unavailable')}}));return;}try{await controller.submit({email,password,metadata:{display_name:name},demo:form.dataset.demoTest==='true'});}catch(error){form.dispatchEvent(new CustomEvent('kleenest:signup-form-error',{bubbles:true,detail:{error}}));}},true);};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',A.bind,{once:true});else A.bind();
+})();
