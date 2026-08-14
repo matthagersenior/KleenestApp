@@ -16,6 +16,8 @@
       const latitude=position.coords.latitude,longitude=position.coords.longitude;
       if(!valid(latitude,longitude)){const error=new Error('Invalid coordinates returned by the location service.');emit('kleenest:location-error',{error});reject(error);return;}
       current={latitude,longitude,lat:latitude,lng:longitude,accuracy:position.coords.accuracy,timestamp:position.timestamp};
+      if(typeof state!=='undefined') state.location={...current};
+      if(window.KleenestRuntime){window.KleenestRuntime.location=current;window.KleenestRuntime.userLocation=current;}
       emit('kleenest:location-updated',{location:current});
       ensureDiscovery();resolve(current);
     },error=>{const detail={code:error.code,message:error.message,error};emit('kleenest:location-error',detail);reject(error);},opts));
@@ -25,5 +27,5 @@
   function validate(latitude,longitude){return valid(Number(latitude),Number(longitude));}
   api.getCurrentPosition=getCurrentPosition;api.request=request;api.get=get;api.validate=validate;api.ensureDiscovery=ensureDiscovery;
   window.KleenestUI=window.KleenestUI||{};window.KleenestUI.getCurrentLocation=getCurrentPosition;
-  setTimeout(()=>{const cached=api.get()||window.KleenestRuntime?.location||window.KleenestRuntime?.userLocation||((typeof state!=='undefined')?state.location:null);if(cached)ensureDiscovery();},0);
+  setTimeout(()=>{const cached=api.get()||window.KleenestRuntime?.location||window.KleenestRuntime?.userLocation||((typeof state!=='undefined')?state.location:null);if(cached){current=cached;ensureDiscovery();}},0);
 })();
