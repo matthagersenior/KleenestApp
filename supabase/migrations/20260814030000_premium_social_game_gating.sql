@@ -4,25 +4,24 @@ returns boolean language sql security definer set search_path=public,auth as $$
   select case
     when auth.uid() is null then false
     when lower(coalesce((select email from auth.users where id=auth.uid()),''))='matthagersr@gmail.com' then true
-    else coalesce(
-      (select (raw_user_meta_data->>'premiumEntitlement')='active'
+    else coalesce((select (raw_user_meta_data->>'premiumEntitlement')='active'
           or (raw_user_meta_data->>'premiumOwnership')='lifetime'
-          or lower(coalesce(raw_user_meta_data->>'subscriptionLevel','')) in ('premium','fleet','enterprise','business'))
-      from auth.users where id=auth.uid(), false)
+          or lower(coalesce(raw_user_meta_data->>'subscriptionLevel','')) in ('premium','fleet','enterprise','business')
+      from auth.users where id=auth.uid()), false)
   end;
 $$;
 
 create or replace function public.join_contest(p_contest_id uuid)
 returns jsonb language plpgsql security definer set search_path=public,auth as $$
-declare inserted boolean:=false;
+declare affected integer:=0;
 begin
   if auth.uid() is null then raise exception 'not_authenticated'; end if;
   if not public.has_kleenest_premium() then raise exception 'premium_required'; end if;
   if not exists(select 1 from contests where id=p_contest_id and active and starts_at <= now() and ends_at > now()) then raise exception 'contest_unavailable'; end if;
   insert into contest_entries(contest_id,user_id) values(p_contest_id,auth.uid()) on conflict do nothing;
-  get diagnostics inserted = row_count;
-  if inserted then perform award_gamification_points('contest_entry',jsonb_build_object('contest_id',p_contest_id)); end if;
-  return jsonb_build_object('joined',true,'new_entry',inserted);
+  get diagnostics affected = row_count;
+  if affected > 0 then perform award_gamification_points('contest_entry',jsonb_build_object('contest_id',p_contest_id)); end if;
+  return jsonb_build_object('joined',true,'new_entry',affected > 0);
 end $$;
 
 create or replace function public.submit_contest_entry(p_contest_id uuid,p_entry jsonb)
@@ -45,14 +44,14 @@ end $$;
 
 create or replace function public.follow_user(p_user_id uuid)
 returns jsonb language plpgsql security definer set search_path=public,auth as $$
-declare inserted boolean:=false;
+declare affected integer:=0;
 begin
   if auth.uid() is null then raise exception 'not_authenticated'; end if;
   if p_user_id=auth.uid() then raise exception 'cannot_follow_self'; end if;
   insert into user_follows(follower_id,followed_id) values(auth.uid(),p_user_id) on conflict do nothing;
-  get diagnostics inserted = row_count;
-  if inserted then perform award_gamification_points('follow'); end if;
-  return jsonb_build_object('following',true,'new_follow',inserted);
+  get diagnostics affected = row_count;
+  if affected > 0 then perform award_gamification_points('follow'); end if;
+  return jsonb_build_object('following',true,'new_follow',affected > 0);
 end $$;
 
 revoke all on function public.has_kleenest_premium() from public;
