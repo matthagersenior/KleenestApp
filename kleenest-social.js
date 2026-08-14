@@ -1,21 +1,15 @@
-/* Kleenest modular social domain: favorites, family, follows and review likes. */
+/* Kleenest social domain: feed, posts/media, reactions, comments, follows, favorites, family, reviews, games/contests/leaderboards. */
 (function(){'use strict';
  const K=window.KleenestSocial=window.KleenestSocial||{};
- const rpc=async(name,args={})=>{const api=window.KleenestSupabase;if(!api||typeof api.rpc!=='function')throw new Error('Supabase social boundary unavailable');return api.rpc(name,args)};
- K.listFavorites=(limit=100)=>rpc('list_user_favorites',{p_limit:limit});
- K.addFavorite=placeId=>rpc('add_user_favorite',{p_place_id:placeId});
- K.removeFavorite=placeId=>rpc('remove_user_favorite',{p_place_id:placeId});
- K.listFollowing=(userId=null,limit=100)=>rpc('list_following',{p_user_id:userId,p_limit:limit});
- K.listFollowers=(userId=null,limit=100)=>rpc('list_followers',{p_user_id:userId,p_limit:limit});
- K.follow=userId=>rpc('follow_user',{p_user_id:userId});
- K.unfollow=userId=>rpc('unfollow_user',{p_user_id:userId});
- K.listLikedReviews=(limit=100)=>rpc('list_liked_reviews',{p_limit:limit});
- K.likeReview=reviewId=>rpc('like_review',{p_review_id:reviewId});
- K.unlikeReview=reviewId=>rpc('unlike_review',{p_review_id:reviewId});
- K.listFamily=(limit=50)=>rpc('list_family_members',{p_limit:limit});
- K.addFamily=(member={})=>rpc('add_family_member',{p_member:member});
- K.updateFamily=(memberId,member={})=>rpc('update_family_member',{p_member_id:memberId,p_member:member});
- K.removeFamily=memberId=>rpc('remove_family_member',{p_member_id:memberId});
- K.bind=(root=document)=>{root.addEventListener('click',async e=>{const el=e.target.closest('[data-social-action]');if(!el)return;const action=el.dataset.socialAction;try{let result;if(action==='favorite')result=await K.addFavorite(el.dataset.placeId);if(action==='unfavorite')result=await K.removeFavorite(el.dataset.placeId);if(action==='follow')result=await K.follow(el.dataset.userId);if(action==='unfollow')result=await K.unfollow(el.dataset.userId);if(action==='review-like')result=await K.likeReview(el.dataset.reviewId);if(action==='review-unlike')result=await K.unlikeReview(el.dataset.reviewId);if(action==='family-remove')result=await K.removeFamily(el.dataset.memberId);el.dispatchEvent(new CustomEvent('kleenest:social-result',{detail:{action,result},bubbles:true}))}catch(error){el.dispatchEvent(new CustomEvent('kleenest:social-error',{detail:{action,error},bubbles:true}))}})};
- K.bind();
+ const api=()=>window.KleenestSupabase;
+ const rpc=async(name,args={})=>{const a=api();if(!a||typeof a.rpc!=='function')throw new Error('Supabase social boundary unavailable');return a.rpc(name,args)};
+ K.listFavorites=(limit=100)=>rpc('list_user_favorites',{p_limit:limit}); K.addFavorite=placeId=>rpc('add_user_favorite',{p_place_id:placeId}); K.removeFavorite=placeId=>rpc('remove_user_favorite',{p_place_id:placeId});
+ K.listFollowing=(userId=null,limit=100)=>rpc('list_following',{p_user_id:userId,p_limit:limit}); K.listFollowers=(userId=null,limit=100)=>rpc('list_followers',{p_user_id:userId,p_limit:limit}); K.follow=userId=>rpc('follow_user',{p_user_id:userId}); K.unfollow=userId=>rpc('unfollow_user',{p_user_id:userId});
+ K.listLikedReviews=(limit=100)=>rpc('list_liked_reviews',{p_limit:limit}); K.likeReview=id=>rpc('like_review',{p_review_id:id}); K.unlikeReview=id=>rpc('unlike_review',{p_review_id:id});
+ K.listFamily=(limit=50)=>rpc('list_family_members',{p_limit:limit}); K.addFamily=member=>rpc('add_family_member',{p_member:member}); K.updateFamily=(id,member)=>rpc('update_family_member',{p_member_id:id,p_member:member}); K.removeFamily=id=>rpc('remove_family_member',{p_member_id:id});
+ K.createPost=async({content='',locationId=null,file=null})=>{let media=null;if(file&&window.KleenestMedia)media=await window.KleenestMedia.uploadSocialPhoto(file);if(window.KleenestMedia?.createSocialPost)return window.KleenestMedia.createSocialPost({content,locationId,media});return rpc('create_social_post',{p_content:content,p_location_id:locationId,p_media_url:media?.url||null});};
+ K.listFeed=(limit=50,offset=0)=>rpc('list_social_feed',{p_limit:limit,p_offset:offset}); K.likePost=id=>rpc('like_social_post',{p_post_id:id}); K.unlikePost=id=>rpc('unlike_social_post',{p_post_id:id}); K.commentPost=(id,content)=>rpc('comment_social_post',{p_post_id:id,p_content:content}); K.listComments=(id,limit=100)=>rpc('list_social_comments',{p_post_id:id,p_limit:limit}); K.sharePost=id=>rpc('share_social_post',{p_post_id:id});
+ K.listGames=()=>rpc('list_public_games'); K.listLeaderboards=()=>rpc('list_public_leaderboards'); K.listContests=()=>rpc('list_public_contests');
+ K.joinContest=id=>rpc('join_contest',{p_contest_id:id}); K.playGame=(id,payload={})=>rpc('play_game',{p_game_id:id,p_payload:payload}); K.getMySocialStats=()=>rpc('get_social_stats');
+ K.bind=(root=document)=>{if(root.__kleenestSocialBound)return;root.__kleenestSocialBound=true;root.addEventListener('click',async e=>{const el=e.target.closest('[data-social-action]');if(!el)return;const a=el.dataset.socialAction;try{let r;if(a==='favorite')r=await K.addFavorite(el.dataset.placeId);if(a==='unfavorite')r=await K.removeFavorite(el.dataset.placeId);if(a==='follow')r=await K.follow(el.dataset.userId);if(a==='unfollow')r=await K.unfollow(el.dataset.userId);if(a==='review-like')r=await K.likeReview(el.dataset.reviewId);if(a==='review-unlike')r=await K.unlikeReview(el.dataset.reviewId);if(a==='post-like')r=await K.likePost(el.dataset.postId);if(a==='post-unlike')r=await K.unlikePost(el.dataset.postId);if(a==='contest-join')r=await K.joinContest(el.dataset.contestId);el.dispatchEvent(new CustomEvent('kleenest:social-result',{detail:{action:a,result:r},bubbles:true}));}catch(error){el.dispatchEvent(new CustomEvent('kleenest:social-error',{detail:{action:a,error},bubbles:true}));}});};K.bind();
 })();
