@@ -1,0 +1,2 @@
+/* Keep implementation terminology out of the customer-facing brand. */
+(function(){'use strict';const style=document.createElement('style');style.textContent='header .brand small{display:none!important}';document.head.appendChild(style);})();
