@@ -10,7 +10,7 @@ const requiredClient=['signInWithPassword','auth.signUp','auth.signOut','getSess
 for(const marker of requiredRuntime)if(!runtime.includes(marker))throw new Error(`Missing auth runtime contract: ${marker}`);
 for(const marker of requiredClient)if(!client.includes(marker))throw new Error(`Missing Supabase client contract: ${marker}`);
 for(const marker of ['A.validate','A.submit','A.inFlight','signup-success','signup-error'])if(!signup.includes(marker))throw new Error(`Missing canonical signup contract: ${marker}`);
-for(const marker of ['auth.signUp','signInWithPassword','demo_register_identity','demo_link_identity'])if(!demo.includes(marker))throw new Error(`Missing demo-auth contract: ${marker}`);
+for(const marker of ['auth.signUp','signInWithPassword','demo_complete_identity'])if(!demo.includes(marker))throw new Error(`Missing demo-auth contract: ${marker}`);
 if(!runtime.includes('business_signup_pending'))throw new Error('Business signup must survive email confirmation.');
 if(!runtime.includes('business_address')||!runtime.includes('business_place_type'))throw new Error('Business signup metadata is incomplete.');
 if(!client.includes('create_business_for_current_user'))throw new Error('Business provisioning RPC missing from client boundary.');
