@@ -1,0 +1,2 @@
+/* Preserve known local map candidates while remote discovery refreshes. */
+(function(){'use strict';const M=window.KleenestMapStatePreserver=window.KleenestMapStatePreserver||{};M.snapshot=()=>Array.isArray(window.state?.restrooms)?window.state.restrooms.map(x=>({...x})):[];M.merge=(before,after)=>{if(!window.state)return;const map=new Map();[].concat(before||[],after||[]).forEach(x=>{if(x&&x.id!=null)map.set(String(x.id),x)});window.state.restrooms=Array.from(map.values());try{window.render?.()}catch(e){}};})();
