@@ -1,0 +1,2 @@
+/* Capture-phase interior interaction guard. */
+(function(){'use strict';const boxes='.modal-overlay,.modal-box,[role="dialog"],[data-auth-modal]';const controls='input,textarea,select,button,label,a,form,[contenteditable="true"]';function guard(e){const box=e.target?.closest?.(boxes);if(!box)return;const control=e.target?.closest?.(controls);if(control&&box.contains(control)){e.stopImmediatePropagation();e.stopPropagation();}}['pointerdown','pointerup','touchstart','touchend','mousedown','mouseup','click'].forEach(t=>window.addEventListener(t,guard,true));})();
