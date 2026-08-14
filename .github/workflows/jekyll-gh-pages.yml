@@ -3,7 +3,7 @@ name: Deploy Kleenest modular refactor to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "refactor/monolith-removal"]
   workflow_dispatch:
 
 permissions:
