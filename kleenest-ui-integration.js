@@ -2,10 +2,17 @@
 (function(){'use strict';
 window.KleenestUI=window.KleenestUI||{};
 function emit(name,detail){if(window.KleenestEvents?.emit)return window.KleenestEvents.emit(name,detail);return window.dispatchEvent(new CustomEvent(name,{detail:detail||{}}));}
-function loadAsset(kind,src){return new Promise((resolve,reject)=>{const selector=kind==='script'?'script[data-kleenest-asset="'+src+'"]':'link[data-kleenest-asset="'+src+'"]';const existing=document.querySelector(selector);if(existing)return resolve(existing);const el=document.createElement(kind);el.dataset.kleenestAsset=src;if(kind==='script'){el.src=src;el.async=false;}else{el.rel='stylesheet';el.href=src;}el.onload=()=>resolve(el);el.onerror=()=>reject(new Error('Failed to load '+src));document.head.appendChild(el);});}
+function loadAsset(kind,src){return new Promise((resolve,reject)=>{
+  const absolute=new URL(src,document.baseURI).href;
+  const selector=kind==='script'?'script[data-kleenest-asset="'+src+'"]':'link[data-kleenest-asset="'+src+'"]';
+  const existing=document.querySelector(selector)||Array.from(document.getElementsByTagName(kind)).find(el=>el.src===absolute||el.href===absolute);
+  if(existing)return resolve(existing);
+  const el=document.createElement(kind);el.dataset.kleenestAsset=src;
+  if(kind==='script'){el.src=src;el.async=false;}else{el.rel='stylesheet';el.href=src;}
+  el.onload=()=>resolve(el);el.onerror=()=>reject(new Error('Failed to load '+src));document.head.appendChild(el);
+});}
 async function ensureAssets(){
   const scripts=[
-    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
     'kleenest-auth-interaction-shield.js','kleenest-supabase.js','kleenest-auth.js','kleenest-auth-signup-controller.js','kleenest-signup-delegated-handler.js',
     'kleenest-maps.js','kleenest-route.js','kleenest-maps-compat.js','kleenest-map-runtime-compat.js','kleenest-runtime.js','kleenest-events.js','kleenest-navigation.js',
     'kleenest-location.js','kleenest-map-discovery-bootstrap.js','kleenest-public-bathroom-discovery.js','kleenest-map-category-filters.js','kleenest-views.js','kleenest-app-bootstrap.js'
@@ -22,39 +29,54 @@ window.KleenestUI.loadRewardsHistory=async reason=>window.KleenestRewardsHistory
 window.KleenestUI.loadGamification=async root=>window.KleenestCommunityUI?.renderGamification?.(root)||null;
 window.KleenestUI.loadCommunity=async root=>window.KleenestCommunityUI?.renderSocial?.(root)||null;
 
+async function updateLocation(){
+  const locationApi=window.KleenestLocation;
+  if(!locationApi?.request)throw new Error('Location service is still loading. Please try again.');
+  const location=await locationApi.request({enableHighAccuracy:true,timeout:12000,maximumAge:0});
+  if(window.KleenestRuntime){window.KleenestRuntime.location=location;window.KleenestRuntime.userLocation=location;}
+  try{if(typeof window.render==='function')window.render();}catch(error){console.warn('[Kleenest] render after location update failed:',error);}
+  emit('location-refresh-complete',{location});
+  return location;
+}
+window.KleenestUI.updateLocation=updateLocation;
+
+function bindLocationRefresh(){
+  if(window.KleenestUI._locationBound)return;
+  window.KleenestUI._locationBound=true;
+  document.addEventListener('click',async event=>{
+    const el=event.target.closest?.('[data-update-location],[data-location-update],[data-gps],button');
+    if(!el)return;
+    const label=(el.textContent||'').trim().toLowerCase();
+    const isLocationControl=el.matches?.('[data-update-location],[data-location-update],[data-gps]')||/update\s+(my\s+)?location|use\s+(my\s+)?location|locate\s+me|refresh\s+location/.test(label);
+    if(!isLocationControl)return;
+    event.preventDefault();event.stopPropagation();
+    if(el.dataset.locationBusy==='true')return;
+    el.dataset.locationBusy='true';
+    const original=el.textContent;el.disabled=true;el.textContent='Updating location…';
+    try{await updateLocation();el.textContent='Location updated';}
+    catch(error){console.error('[Kleenest] location refresh failed:',error);emit('location-refresh-error',{error});el.textContent=error?.code===1?'Allow location access':'Location unavailable';setTimeout(()=>{el.textContent=original;},2200);}
+    finally{el.disabled=false;el.dataset.locationBusy='false';}
+  },true);
+}
+
 function recoverInitialRender(){
-  // The legacy index performs an immediate render before dynamically loaded
-  // modular view/domain scripts are ready. Re-render once the modular graph
-  // is loaded so Maps/Route/Details/Profile are real functions instead of
-  // producing an early "X is not defined" startup failure.
   if(typeof window.render!=='function')return;
-  try{
-    window.render();
-    const box=document.getElementById('startup-error');
-    if(box)box.style.display='none';
-    emit('app-recovered',{reason:'modular-assets-ready'});
-  }catch(error){
-    console.error('[Kleenest] recovered render failed:',error);
-    emit('action-error',{action:'recovered-render',error});
-  }
+  try{window.render();const box=document.getElementById('startup-error');if(box)box.style.display='none';emit('app-recovered',{reason:'modular-assets-ready'});}
+  catch(error){console.error('[Kleenest] recovered render failed:',error);emit('action-error',{action:'recovered-render',error});}
 }
 
 async function boot(){
   try{
+    bindLocationRefresh();
     await ensureAssets();
-    window.KleenestSignupDelegated?.bind?.();
-    window.KleenestAuthSignup?.bindAll?.();
+    window.KleenestSignupDelegated?.bind?.();window.KleenestAuthSignup?.bindAll?.();
     await window.KleenestMapDiscovery?.load?.('ui-bootstrap');
     await window.KleenestPublicBathroomDiscovery?.load?.({radiusMeters:25000});
     await window.KleenestAppBootstrap?.start?.();
-    // Important: index.html currently performs its legacy render before this
-    // asynchronous module loader finishes. Repair that ordering here.
     recoverInitialRender();
   }catch(error){
-    console.error('[Kleenest] modular bootstrap failed:',error);
-    window.KleenestUI.reportError?.('runtime-assets',error);
-    const box=document.getElementById('startup-error');
-    if(box){box.style.display='block';box.innerHTML='<h2>Kleenest could not start</h2><p>'+String(error?.message||error)+'</p><p>Refresh the page and try again.</p>';}
+    console.error('[Kleenest] modular bootstrap failed:',error);window.KleenestUI.reportError?.('runtime-assets',error);
+    const box=document.getElementById('startup-error');if(box){box.style.display='block';box.innerHTML='<h2>Kleenest could not start</h2><p>'+String(error?.message||error)+'</p><p>Refresh the page and try again.</p>';}
   }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
