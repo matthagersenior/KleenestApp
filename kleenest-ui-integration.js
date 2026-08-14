@@ -21,6 +21,41 @@ window.KleenestUI.loadBusinessState=async reason=>window.KleenestBusinessState?.
 window.KleenestUI.loadRewardsHistory=async reason=>window.KleenestRewardsHistory?.load?.(50,reason)||null;
 window.KleenestUI.loadGamification=async root=>window.KleenestCommunityUI?.renderGamification?.(root)||null;
 window.KleenestUI.loadCommunity=async root=>window.KleenestCommunityUI?.renderSocial?.(root)||null;
-async function boot(){try{await ensureAssets();window.KleenestSignupDelegated?.bind?.();window.KleenestAuthSignup?.bindAll?.();await window.KleenestMapDiscovery?.load?.('ui-bootstrap');await window.KleenestPublicBathroomDiscovery?.load?.({radiusMeters:25000});await window.KleenestAppBootstrap?.start?.();}catch(error){console.error('[Kleenest] modular bootstrap failed:',error);window.KleenestUI.reportError?.('runtime-assets',error);}}
+
+function recoverInitialRender(){
+  // The legacy index performs an immediate render before dynamically loaded
+  // modular view/domain scripts are ready. Re-render once the modular graph
+  // is loaded so Maps/Route/Details/Profile are real functions instead of
+  // producing an early "X is not defined" startup failure.
+  if(typeof window.render!=='function')return;
+  try{
+    window.render();
+    const box=document.getElementById('startup-error');
+    if(box)box.style.display='none';
+    emit('app-recovered',{reason:'modular-assets-ready'});
+  }catch(error){
+    console.error('[Kleenest] recovered render failed:',error);
+    emit('action-error',{action:'recovered-render',error});
+  }
+}
+
+async function boot(){
+  try{
+    await ensureAssets();
+    window.KleenestSignupDelegated?.bind?.();
+    window.KleenestAuthSignup?.bindAll?.();
+    await window.KleenestMapDiscovery?.load?.('ui-bootstrap');
+    await window.KleenestPublicBathroomDiscovery?.load?.({radiusMeters:25000});
+    await window.KleenestAppBootstrap?.start?.();
+    // Important: index.html currently performs its legacy render before this
+    // asynchronous module loader finishes. Repair that ordering here.
+    recoverInitialRender();
+  }catch(error){
+    console.error('[Kleenest] modular bootstrap failed:',error);
+    window.KleenestUI.reportError?.('runtime-assets',error);
+    const box=document.getElementById('startup-error');
+    if(box){box.style.display='block';box.innerHTML='<h2>Kleenest could not start</h2><p>'+String(error?.message||error)+'</p><p>Refresh the page and try again.</p>';}
+  }
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
