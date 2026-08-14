@@ -1,0 +1,1 @@
+This file marks the temporary main-to-refactor synchronization baseline. It can be removed after the refactor branch absorbs the current main history.
