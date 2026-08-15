@@ -18,22 +18,9 @@ Completed:
 - `kleenest-maps-surface.js` owns the complete merged discovery pipeline: browser location, Supabase nearby locations, existing OSM/Overpass discovery, merged results, filters/list/markers.
 - Existing Overpass/OpenStreetMap discovery is reused; do not rebuild it unnecessarily.
 - The shell does not dispatch a competing external dataset after Maps mounts.
-- Categories include bathrooms, gas stations, restaurants, cafes, retail, public, health, parks and transit.
-
-Latest deployment correction:
-- User reported **"Maps surface failed to load"** even after the map appeared in earlier attempts.
-- Inspection showed `index.html` was still loading registry `r14` while the current Maps surface had moved beyond that cache version. The registry's feature URLs therefore could continue resolving stale Maps code.
-- Updated `kleenest-modular-feature-registry.js` to cache version `r16` (commit `8ebd001d`).
-- Updated `index.html` to load registry `r16` and modular entry `modular13` (commit `ee1b9b19`).
-- The current Maps surface has a real `M.mount` and is registered as `mapsSurface`; if the new deployment still reports the shell's "Maps surface failed to load", inspect script-load/network ordering next rather than changing discovery data.
-
-Historical Maps sources:
-- `a343411d` — map discovery bootstrap
-- `bb17b7fb` — Maps compatibility
-- `dbc62ca9` — real Supabase nearby discovery
-- `b71c9497` — UI/startup integration
-- `3ae57fe9` — corrected nearby RPC args and discovery widening
-- `f36ed5a1` — corrected Maps renderer
+- **Current failure found:** the browser was still able to cache the older `kleenest-modular-entry.js`, which loaded `kleenest-app-shell.js` without a cache-busting query. That meant the newest shell changes were not necessarily executing.
+- Fixed `kleenest-modular-entry.js` to load `kleenest-app-shell.js?modular=20260815-shell15` (commit `54bd5ed24fd07ff9636a2ee2f796ec0f8913dab9`).
+- Fixed the shell Maps branch to load the authoritative Maps surface directly and avoid the legacy `maps` discovery bootstrap as a prerequisite. This prevents an unrelated legacy bootstrap failure from causing the visible error `Maps surface failed to load`.
 
 ## Social/Games
 - `kleenest-social-game-surface.js` is the parent surface.
