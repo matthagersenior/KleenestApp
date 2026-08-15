@@ -7,21 +7,30 @@ When told to "look for the note", read this file first and continue from the che
 
 ## Current authoritative runtime
 - Target branch: `refactor/monolith-removal`
-- Current index commit: `62d14f064b266bc757678623b01978276c04bab0`
-- Current shell commit: `ed245f2306b6a80fb8373e7a4aaf68d5f10c6462`
-- Current registry commit: `5f79619e024b54fd2b5c2be38663fd8f82c414fb`
-- New modular social/game surface: `kleenest-social-game-surface.js` commit `04f025f1e8e94417c352b78f6b7f8dc65161c2ae`
+- Latest shell commit: `0687319d39fb1973d74a3255b3ab5c314a411383`
+- Latest index commit: `202bd57b06e992371ef50a7a1bce5f8b7e2b9c3b` (modular index cache versions r9/modular8)
+- Registry remains the authoritative lazy module map; it must point only to files that actually exist on this branch.
 
-## What was fixed in the latest pass
-1. The modular registry now includes the previously omitted account state, business data, business state, UI integration and a dedicated social/game surface.
-2. The shell now hydrates the authenticated Supabase user with the profile and `business_members` membership data before deciding whether Business/Admin tabs should appear.
-3. Business access is derived from actual memberships, not from the Supabase auth user alone.
-4. Admin access is derived from profile admin flags and owner/admin business membership.
-5. Profile now explicitly exposes connected Business and Admin access when present.
-6. Business surface now loads `kleenest-business.js` + `kleenest-business-state.js` before the Business workspace, allowing the existing authoritative workspace/analytics layer to obtain real membership/business context.
-7. Admin surface now loads the same business data/state prerequisites before `kleenest-business-admin-complete.js`.
-8. Social now loads a dedicated modular Social + Game surface rather than leaving an empty placeholder. It exposes Game Center, Clean Quiz, Quick Trivia, Memory Match, Daily Spin, contests and rewards, while remaining usable if older social service dependencies are unavailable.
-9. Index cache versions were bumped to registry `r8` and modular entry `modular7`.
+## Latest pass — authentication, persistence, account-level surface gating
+The previous implementation authenticated successfully but failed to restore identity after refresh because the shell called `KleenestSupabase.session()` before guaranteeing that the Supabase JS CDN client existed. The shell now loads the Supabase client before every identity hydration, including startup/refresh, then hydrates profile, business memberships, and subscription summary.
+
+The shell now:
+1. Restores the persisted Supabase session on every startup.
+2. Loads the user's profile and business memberships.
+3. Loads `user_subscription_summary` when available and derives `accountLevel` from profile/subscription fields.
+4. Hides all Sign In / Sign Up controls once a session exists and replaces the Home account card with Welcome Back/Profile access.
+5. Shows Business only for a business membership/business account or business-level account.
+6. Shows Admin only for `is_admin` or owner/admin membership.
+7. Rebinds the shell after Supabase auth state changes so login/logout immediately changes visible tabs.
+8. Prevents direct navigation into Business/Admin when the account does not have access.
+9. Keeps authentication and account hydration inside the modular shell; the monolith and legacy auth launcher are not runtime dependencies.
+
+## Modular surfaces to keep attaching
+- Maps: location + map category filters + maps compatibility
+- Social/Games: `kleenest-social-game-surface.js`, then progressively reconnect historical `kleenest-engagement.js` dependencies
+- Business: `kleenest-business-workspace.js`, business data/state, analytics, QR, actions, management
+- Admin: `kleenest-business-admin-complete.js`, business data/state, analytics, QR
+- Profile/account: account/account-state modules
 
 ## Existing feature sources to keep migrating/reusing
 - `f219de80` — advanced QR + business CRUD controls
@@ -37,23 +46,15 @@ When told to "look for the note", read this file first and continue from the che
 - `8c775b3` — `kleenest-business.js` secure business data layer
 - `ce4895` — reconciled business data/state wiring
 
-## Known architectural facts
-- `kleenest-business-workspace.js` is already a rich authoritative Business UI with datasets including Overview, Locations, Engagement, QR & Check-ins, Visitors, Reviews, Photos/Media, Promotions, Campaigns, Partnerships, Rewards, Events, Occupancy, ROI, Growth, Benchmarks and Verification/Tier.
-- `kleenest-business-admin-complete.js` already contains business/admin operations including locations, promotions, partner programs, campaigns, QR and media controls.
-- `kleenest-business-state.js` loads memberships, business dashboard data, locations, reviews and promotions.
-- `kleenest-account-state.js` loads authenticated account state.
-- `kleenest-supabase.js` exposes `profile()` and `businessMemberships()`.
-- `kleenest-engagement.js` is the historical cross-surface social/game layer, but its dependencies are not all reliably present under their expected names; the dedicated `kleenest-social-game-surface.js` is the resilient modular bridge while those deeper services are migrated.
-
 ## Next work — continue as many tasks per pass as possible
-1. Verify live Social/Game surface and progressively reconnect the historical `kleenest-engagement.js` services (gamification/social/community/game) without breaking the resilient fallback.
-2. Verify Business membership/profile population against the real Supabase account and make the Business workspace show all locations immediately after authentication.
-3. Verify Admin access and platform overview for the actual admin account.
-4. Reconnect QR Studio + advanced CRUD to the Business workspace and ensure Growth+/owner/admin gating.
+1. Verify the persisted-session path and account-level tab gating against the real account.
+2. Verify Business/Admin actually mount their existing rich surfaces, not placeholders, after identity hydration.
+3. Verify Social/Game surface and reconnect historical engagement services without breaking fallback.
+4. Reconnect QR Studio + advanced CRUD with Growth+/owner/admin gating.
 5. Reconnect Photos/Media/VR, Partnerships, Campaigns, Promos/Offers, Events and Reviews/Replies.
 6. Keep all datasets calculation-specific and location-specific; never show a generic value for a selected dataset.
-7. Continue comparing the monolith as a reference only and migrate missing capabilities into modular files rather than importing its renderer.
-8. Keep the shell lazy and non-blocking. No monolithic renderer, no polling observers, no recursive startup rendering.
+7. Compare the monolith as reference only and migrate missing capabilities into modular files rather than importing its renderer.
+8. Keep startup lazy/non-blocking and avoid polling observers or recursive startup rendering.
 
 ## Non-negotiable product rules
 - Branding: `Kleenest` only; never `KKleenest` or `Cleanest` in displayed app copy.
