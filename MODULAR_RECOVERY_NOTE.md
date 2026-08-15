@@ -15,12 +15,17 @@ Authoritative path:
 `index.html` -> `kleenest-modular-feature-registry.js` -> `kleenest-modular-entry.js` -> `kleenest-app-shell.js` -> `kleenest-maps-surface.js`.
 
 Completed:
-- `index.html` now loads registry `r14` and modular entry `modular12` (commit `9c0d1215`).
-- `kleenest-maps-surface.js` now owns the complete merged discovery pipeline (commit `59c061a9`).
-- Maps requests browser location, falls back to a local map center when permission is unavailable, calls `KleenestSupabase.nearbyLocations`, calls the existing `KleenestMapExternalDiscovery.nearby`, merges live + stored + external results, and feeds the merged dataset to filters/list/markers.
+- `kleenest-maps-surface.js` owns the complete merged discovery pipeline: browser location, Supabase nearby locations, existing OSM/Overpass discovery, merged results, filters/list/markers.
 - Existing Overpass/OpenStreetMap discovery is reused; do not rebuild it unnecessarily.
-- The shell no longer dispatches a second external dataset after Maps mounts; Maps owns discovery (commit `0ab26ce3`).
+- The shell does not dispatch a competing external dataset after Maps mounts.
 - Categories include bathrooms, gas stations, restaurants, cafes, retail, public, health, parks and transit.
+
+Latest deployment correction:
+- User reported **"Maps surface failed to load"** even after the map appeared in earlier attempts.
+- Inspection showed `index.html` was still loading registry `r14` while the current Maps surface had moved beyond that cache version. The registry's feature URLs therefore could continue resolving stale Maps code.
+- Updated `kleenest-modular-feature-registry.js` to cache version `r16` (commit `8ebd001d`).
+- Updated `index.html` to load registry `r16` and modular entry `modular13` (commit `ee1b9b19`).
+- The current Maps surface has a real `M.mount` and is registered as `mapsSurface`; if the new deployment still reports the shell's "Maps surface failed to load", inspect script-load/network ordering next rather than changing discovery data.
 
 Historical Maps sources:
 - `a343411d` — map discovery bootstrap
