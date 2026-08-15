@@ -1,0 +1,1 @@
+The authoritative modular index is being rebuilt without the monolith renderer. Authentication belongs to kleenest-app-shell.js.
