@@ -15,16 +15,13 @@ Authoritative path:
 `index.html` -> `kleenest-modular-feature-registry.js` -> `kleenest-modular-entry.js` -> `kleenest-app-shell.js` -> `kleenest-maps-surface.js`.
 
 ### Actual blocker found in latest investigation
-The visible `Maps surface failed to load` error was being produced by the shell before the Maps renderer could mount. The shell was treating optional location/external-discovery adapters as mandatory. A failure to load either adapter caused the shell to reject before calling `KleenestMapsSurface.mount()`.
-
-A second important constraint: Maps itself must remain usable even if optional external discovery or the Leaflet CDN fails. The renderer already contains fallback behavior for data and map presentation; the shell must not prevent it from running.
+The generic `Maps surface failed to load` message was still possible because the registry treated the mere presence of a `script[data-kleenest-feature="mapsSurface"]` tag as proof that the module had registered. A stale/failed script tag could therefore make `registry.load('mapsSurface')` resolve while `window.KleenestMapsSurface` was undefined. The shell then failed at the mount check.
 
 ### Latest fixes
-- `kleenest-app-shell.js` commit `efe68c4c191ee693fbea8ecf632448f4f92eb23e`: Maps now treats **only `mapsSurface` as mandatory**. Location and external-discovery adapters are loaded after mounting and cannot block Maps startup.
-- `kleenest-modular-entry.js` commit `e74848e13904ef5a0fa8e0f8346de02a705d5fa7`: shell cache version bumped to `shell16`.
-- `index.html` commit `512f57e2556b6ffbfc53d77936ddc4e7662086f`: authoritative runtime bumped to registry `r19` / entry `modular16`.
-- `kleenest-maps-surface.js` commit `1eb25c7302d6445f7c05275f3b81f327d4efde1c`: current self-contained Leaflet renderer, browser-location request, Supabase nearby merge, optional OSM/Overpass merge, filters, markers and location list.
-- Existing `kleenest-map-external-discovery.js` remains the external venue source and is reused rather than rebuilt.
+- `kleenest-app-shell.js` commit `dfcc57acb0cbaa1cdf521c9cfd0b0fcac318dd59`: Maps now bypasses the fragile registry path for the critical renderer. It removes a stale Maps script tag when necessary, directly loads `kleenest-maps-surface.js` with a unique cache-busting query, and verifies `window.KleenestMapsSurface.mount` before mounting. Location and external-discovery adapters remain optional after mount.
+- `kleenest-modular-entry.js` commit `e1196acc81da5c79246228d2bda665fac1e95fb6`: shell cache version bumped to `shell17` so the direct Maps loading fix reaches the browser.
+- `kleenest-maps-surface.js` remains the self-contained renderer with Leaflet/OSM fallback, browser-location request, Supabase nearby merge, external discovery merge, filters, markers and location list.
+- The registry remains available for all other modular features; the Maps renderer is intentionally direct-loaded because it is the highest-priority critical surface and must not depend on a stale registry tag.
 
 ### Important verification rule
 Do not claim Maps is fixed merely because files committed successfully. The deployed app must be checked for:
@@ -35,7 +32,7 @@ Do not claim Maps is fixed merely because files committed successfully. The depl
 5. Marker/list synchronization when Leaflet is available.
 6. Location details, favorites and route entry.
 
-If Maps still reports **“Maps surface failed to load”**, inspect the actual deployed `index -> entry -> shell -> registry -> mapsSurface` script chain first. Do not change Supabase or rebuild discovery until that chain is verified.
+If Maps still reports **“Maps surface failed to load”**, inspect the deployed `index -> entry -> shell` chain and the direct Maps script response. Do not change Supabase or rebuild discovery until that script chain is verified.
 
 If Maps mounts but external venues are missing, inspect the Overpass response/error path before changing the Supabase dataset again.
 
