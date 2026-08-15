@@ -14,11 +14,10 @@ Maps is the highest-priority product surface. It must feel like an already-popul
 - **Every app open must immediately activate/warm GPS.** Do not wait for Maps navigation or a user pressing Update Location.
 - The first usable GPS position on every app open triggers fresh nearby discovery against both Supabase/database data and OSM/Overpass data.
 - Location data is cached in localStorage and exposed as `KleenestLocations`.
-- Maps renders from the shared cache immediately while app-open GPS/discovery runs in the background.
+- Maps renders from the shared cache immediately while discovery runs in the background.
 - Only bathroom-verified records are exposed through `KleenestLocations`; unverified source records are retained as `KleenestMapCandidates`.
-- Public Maps rendering and marker creation are explicitly bounded at 300 records so a large OSM/Overpass response cannot lock the browser UI.
-- Candidate storage is bounded at 5,000 records and persisted separately from public restroom results.
-- OSM/Overpass app-open discovery radius is bounded to 10 km for the interactive nearby refresh; the ingestion Edge Function can use a larger radius for catalog population.
+- Public Maps rendering is bounded before marker creation so a large source response cannot lock the UI.
+- Candidate storage is bounded separately from public restroom results.
 - The manual Maps action is **Update my location** and is the only manual location refresh control. It gets a fresh GPS position and refreshes nearby data.
 
 ## Location catalog policy — 2026-08-15
@@ -31,29 +30,53 @@ Supabase has an authenticated `ingest-map-candidates` Edge Function for OSM/Over
 ## Gamification / social contract
 The Maps ecosystem includes check-ins, location visits, favorites, reviews, bathroom verification, points, levels, badges and social activity. Bathroom verification is an auditable contribution signal and should award verification points once per user/location rather than allowing repeat farming.
 
-## Latest Maps lockup fix — 2026-08-15
-User reported: **the app stops responding after app open and then switching to Maps.** Investigation identified an unsafe path: interactive Maps discovery could return thousands of OSM/Overpass venues, then the Maps surface attempted to normalize, build HTML for, create Leaflet markers for, and persist a large dataset in one UI cycle. The prior external discovery allowed up to 5,000 OSM records and the preloader could merge that whole response into the public Maps array.
+## Latest Maps lockup investigation — 2026-08-15
+User reported twice that **the app becomes unresponsive after app open and switching to Maps**, even after bounding OSM/Overpass and public marker counts.
 
-Implemented:
-- Preloader cache moved to `v23`.
-- Public verified Maps results capped at 300.
-- Candidate cache capped at 5,000 and kept separate from public results.
-- OSM/Overpass interactive radius reduced to 10 km; catalog ingestion remains independently capable of broader ingestion.
-- Maps surface now renders at most 300 locations and no longer renders unverified candidates as restroom results.
-- Removed the separate Refresh control from the actual Maps surface; `Update my location` is now the single manual action.
-- Maps status copy now distinguishes verified locations from candidate data.
+The deeper issue was identified in the navigation architecture: the normal shell Maps path performed `core()` and `hydrateIdentity()` before mounting Maps, and also loaded the bathroom-verification module before the Maps renderer. That meant Maps could wait on unrelated Supabase session/profile/membership/subscription work. The shell also awaited Maps mounting and Leaflet initialization.
+
+### Fix implemented
+- Added `kleenest-map-navigation-guard.js`.
+- The guard captures Maps navigation clicks before the shell's normal bubble handler and opens the Maps surface directly.
+- Maps navigation no longer waits for identity/business/subscription hydration.
+- Maps navigation no longer waits for the bathroom-verification module.
+- Reworked `kleenest-maps-surface.js` to a non-blocking mount: it creates the Maps UI synchronously, then defers Leaflet/network initialization.
+- Leaflet initialization errors are contained inside Maps rather than propagating into the app navigation lifecycle.
+- Public rendering is bounded at 100 records in the new surface.
+- Shared GPS/cache data is used immediately.
+- The single `Update my location` control remains the manual GPS/refresh action.
+- The modular bootstrap now loads the navigation guard after the shell.
+
+## Required navigation behavior
+1. App opens: immediately warm GPS/location data in the background.
+2. Every app-open GPS position triggers fresh Supabase/database + OSM/Overpass nearby discovery.
+3. If verified Maps data exists, expose it immediately while fresh discovery runs.
+4. Keep unverified candidates separate; do not clear them during refresh.
+5. Navigate away from Maps: do NOT destroy shared location/GPS state.
+6. Return to Maps: the fast navigation path mounts the cached dataset immediately and does not wait for identity/business hydration.
+7. Preserve map center, zoom, category and amenity filters where possible.
+8. Background refresh updates the shared cache without clearing visible results.
+9. OSM/Overpass and database results are merged and persisted rather than replacing prior candidates.
+10. The Maps surface must never use a local-count threshold to decide whether to refresh; refresh policy belongs to the preloader.
+11. Tapping **Update my location** acquires fresh GPS and refreshes nearby discovery.
+12. Leaflet/network initialization must never be awaited by the shell's navigation lifecycle.
 
 ## Verification still required
 1. Cold launch: confirm GPS starts without navigating to Maps.
 2. App open with cached GPS: confirm fresh database + OSM/Overpass discovery occurs.
-3. Switch Home → Maps and confirm the UI remains responsive while discovery is running.
-4. Confirm Maps initially paints cached verified results immediately.
+3. Switch Home → Maps and confirm the UI remains responsive immediately.
+4. Confirm Maps paints its shell before slow network/identity work.
 5. Confirm background discovery does not clear visible verified pins.
-6. Confirm candidate counts can grow without causing public marker rendering to exceed the 300-location cap.
+6. Confirm candidate counts can grow without public marker rendering exceeding the cap.
 7. Confirm Update my location acquires fresh GPS and refreshes both sources.
-8. Navigate Home → Maps → Home → Maps and confirm no duplicate GPS lifecycle.
+8. Navigate Home → Maps → Home → Maps and confirm no duplicate GPS lifecycle or blocking initialization.
 9. Confirm map center/zoom and category/amenity filters persist.
 10. Verify bathroom verification remains GPS-gated, auditable and connected to points/badges/social rewards.
+
+## Latest commits
+- `cf067b4e9b15bfa1a2ab72a7fd88286ff081bf20` — Maps surface v47: non-blocking mount and isolated Leaflet initialization.
+- `1a6280ed93a9437a3891754e5e653b3dfd89e81e` — Maps navigation guard: bypass blocking shell hydration.
+- `0380949c214728d3b0043b1067018281dfabd044` — modular entry loads the fast Maps navigation path.
 
 ## Non-negotiable product rules
 - Branding: `Kleenest` only.
