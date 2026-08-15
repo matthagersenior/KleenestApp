@@ -12,62 +12,63 @@ Maps is the highest-priority product surface. It must feel like an already-popul
 - `kleenest-map-session.js` preserves Maps view/filter state across navigation and browser sessions.
 - GPS uses one `watchPosition` watcher and a shared promise; individual Maps mounts must not request GPS again.
 - **Every app open must immediately activate/warm GPS.** Do not wait for Maps navigation or a user pressing Update Location.
-- The first usable GPS position on every app open must trigger a fresh nearby discovery against **both Supabase/database data and OSM/Overpass data**, even when local Maps cache exists and is still inside the normal freshness window.
+- The first usable GPS position on every app open triggers a fresh nearby discovery against **both Supabase/database data and OSM/Overpass data**, even when local Maps cache exists.
 - Location data is cached in localStorage and exposed as `KleenestLocations`.
 - Maps renders from the shared cache immediately while app-open GPS/discovery runs in the background.
-- The app-open discovery merges fresh database/OSM results into the existing cache; it does not clear cached results first.
-- After the app-open discovery, normal freshness/navigation rules apply: subsequent navigation back to Maps does not re-request GPS or start a second discovery cycle.
-- Background discovery merges with the existing cache and emits `kleenest:map-data-updated`; it does not clear visible results first.
+- The app-open discovery merges fresh database/OSM results into the existing candidate catalog; it does not clear candidates first.
+- **Only bathroom-verified records are exposed through `KleenestLocations` for the public Maps destination list.** Unverified source records are retained as `KleenestMapCandidates` for future verification/data collection.
+- Candidate cache key is `kleenest.maps.candidates.v1`; public Maps cache key is `kleenest.maps.cache.v23`.
 - `kleenest-map-media.js` is loaded by the preloader and fixes Leaflet's broken default marker assets with an inline Kleenest pin.
 - `kleenest-map-media.js` also decorates Maps result/detail cards with a business-selected featured location photo.
 - Featured photos use the existing `location_photos` table and `location-photos` Storage bucket.
 - Growth and Enterprise businesses can choose a featured photo through `set_featured_location_photo`; the database enforces ownership and tier authorization.
-- The modular bootstrap loads the Maps session/preloader before the app shell.
-- `kleenest-maps-surface.js` is a renderer/consumer only: it must not independently start discovery or own a second GPS lifecycle.
+- The modular bootstrap loads the Maps session/preloader before the app shell and now also loads the Maps control policy.
+- `kleenest-maps-surface.js` remains a renderer/consumer only: it must not independently start discovery or own a second GPS lifecycle.
 - The legacy `kleenest-map-discovery-bootstrap.js` is compatibility-only and delegates to the persistent preloader; it must not run an independent startup discovery pipeline.
-- Current implementation cache key is `kleenest.maps.cache.v22`; v22 fixes app-open discovery when a cached GPS position already exists and ensures Supabase is available before the first database query.
-- Current session key is `kleenest.maps.session.v1`.
+- The manual Maps action is **Update my location**. It forces a fresh GPS position and a nearby data refresh. The separate Refresh button is intentionally removed.
 
-## Latest Maps pass — 2026-08-15
-The prior pass correctly made GPS start at app open and made the first *new* GPS fix trigger discovery, but browser testing feedback exposed two additional defects in that implementation:
+## Location catalog policy — 2026-08-15
+The location catalog is broader than the confirmed restroom list. Safe source categories now include gas stations/travel stops, fast food/restaurants, cafes, hospitals/healthcare, parks/recreation, retail, libraries, airports, transit, lodging, public/government, worship, financial, culture and community locations.
 
-1. A hydrated cached GPS position meant `position(false)` returned immediately with `firstFix === false`, so a new app-open cycle could skip fresh discovery entirely. The cache could therefore remain at the old six results.
-2. The modular entry starts the preloader very early, before the shell's `core()` path necessarily loads the Supabase bridge/client. The first GPS fix could therefore launch discovery while `KleenestSupabase` was unavailable, causing the database portion to be skipped while OSM attempted independently.
+The rule is:
+1. Source systems may create/update a location candidate.
+2. Candidates carry provenance (`source`, `source_dataset`, `source_external_id`, `source_metadata`).
+3. Candidates default to `bathroom_verification_status = 'unverified'`.
+4. An unverified candidate is **not** presented as a confirmed bathroom destination.
+5. Community/business verification can promote the candidate to `has_bathroom`, at which point it becomes eligible for the public Maps destination dataset.
+6. A unique `(source_dataset, source_external_id)` index prevents repeated OSM ingestion from duplicating records.
 
-Implemented in `kleenest-map-preloader.js`:
-- Added a single `appOpenRefresh` promise per app-open page lifecycle.
-- Every successful app-open GPS position now triggers `beginAppOpenRefresh()`, regardless of whether the position came from a hydrated cache or a newly acquired fix.
-- Discovery now explicitly ensures the Supabase JS client and `kleenest-supabase.js` bridge are loaded before calling `nearbyLocations`.
-- The OSM/Overpass discovery remains in the same cycle, then both sources merge with the existing cache.
-- Cache version advanced to `v22` to prevent the old six-location cache contract from masking the repaired app-open behavior.
-- Manual Refresh continues to acquire/reuse shared GPS before discovery.
+Supabase now has an authenticated `ingest-map-candidates` Edge Function that queries OSM/Overpass and upserts candidates into `locations`. The database has lookup indexes for place type, bathroom status, and active/source combinations.
 
-The previous Maps fixes remain in force: the surface renders immediately from cache, has no local-count refresh threshold, session view/filter state is consumed and persisted, and the legacy discovery bootstrap is compatibility-only.
+## Gamification / social contract
+The existing engagement model remains part of Maps: check-ins, location visits, favorites, reviews, bathroom verification, points, levels, badges and social activity. Bathroom verification is an auditable contribution signal and should award verification points once per user/location rather than allowing repeat farming.
 
 ## Required navigation behavior
 1. App opens: immediately warm GPS/location data in the background.
 2. Every app-open GPS position triggers fresh Supabase/database + OSM/Overpass nearby discovery.
-3. If local Maps data exists, expose it immediately while that fresh discovery runs.
-4. Navigate away from Maps: do NOT destroy the shared location/GPS state.
-5. Return to Maps: mount the existing cached dataset immediately; do not prompt/re-request GPS.
-6. Preserve map center, zoom, category and amenity filters where possible.
-7. Background refresh updates the shared cache without clearing visible results.
-8. OSM/Overpass and database results are merged and persisted rather than replacing prior locations.
-9. The Maps surface must never use a local-count threshold to decide whether to refresh; refresh policy belongs to the preloader.
-10. Manual Refresh must acquire/reuse the shared GPS position and then query both discovery sources.
+3. If verified Maps data exists, expose it immediately while fresh discovery runs.
+4. Keep unverified candidates separate; do not clear them during refresh.
+5. Navigate away from Maps: do NOT destroy the shared location/GPS state.
+6. Return to Maps: mount the existing cached dataset immediately; do not prompt/re-request GPS.
+7. Preserve map center, zoom, category and amenity filters where possible.
+8. Background refresh updates the shared cache without clearing visible results.
+9. OSM/Overpass and database results are merged and persisted rather than replacing prior candidates.
+10. The Maps surface must never use a local-count threshold to decide whether to refresh; refresh policy belongs to the preloader.
+11. Tapping **Update my location** must acquire a fresh GPS position and refresh nearby discovery; no second Refresh control is shown.
 
 ## Verification still required
 1. Browser test cold launch and confirm GPS permission/fix begins without navigating to Maps.
 2. Confirm every app open, including an open with a previously cached GPS position, triggers fresh Supabase/database + OSM/Overpass discovery.
-3. Confirm cached results paint immediately and remain visible while fresh discovery runs.
-4. Confirm the database query actually returns rows and the OSM/Overpass query returns rows; log/inspect both source counts if the merged result does not grow.
+3. Confirm cached verified results paint immediately and remain visible while fresh discovery runs.
+4. Confirm candidate counts grow after authenticated OSM ingestion and that verified Maps results remain gated by bathroom confirmation.
 5. Navigate Home → Maps → Home → Maps and confirm no second GPS permission/request and no duplicate app-open discovery cycle.
 6. Move/zoom the map, leave Maps, return, and confirm center/zoom restore.
 7. Change category/amenity, leave Maps, return, and confirm filters restore.
-8. Press Refresh before GPS is initialized and confirm it acquires/reuses shared GPS, runs both discovery sources, and increases the merged result count when sources return additional locations.
-9. Verify background discovery does not clear existing pins while new results arrive.
+8. Tap **Update my location** and confirm GPS updates and both discovery sources refresh.
+9. Verify background discovery does not clear existing verified pins while candidates are merged.
 10. Verify real uploaded featured photos render; mock `location_photos` rows without Storage objects are not sufficient.
 11. Verify Growth/Enterprise featured-photo selection after real uploads.
+12. Verify bathroom verification is GPS-gated, auditable and contributes to the existing points/badges/social system without duplicate point farming.
 
 ## Non-negotiable product rules
 - Branding: `Kleenest` only; never `KKleenest` or `Cleanest` in displayed app copy.
