@@ -22,6 +22,18 @@ Maps is the highest-priority product surface. It must feel like an already-popul
 - Current local cache key is `kleenest.maps.cache.v11`; location data may be shown for up to 7 days while fresh network data refreshes after 15 minutes.
 - Current session key is `kleenest.maps.session.v1`.
 
+### Bathroom verification architecture
+- `public.location_bathroom_verifications` records geofenced public-bathroom votes.
+- `public.location_verification_points` records gamification points for verification activity.
+- `public.locations` now tracks `bathroom_verification_status`, positive/negative counts, total count and verification time.
+- `get_location_bathroom_verification(location_id)` returns consensus state and automatically recognizes business owner/admin membership.
+- `record_bathroom_verification(location_id, has_public_bathroom, latitude, longitude)` enforces GPS presence and the location's geofence in the database.
+- Premium/Pro/Growth/Enterprise users can make a direct verification; standard/free users contribute to a three-matching-vote consensus.
+- Business owners/managers/admins are automatically trusted for locations attached to their business membership.
+- A location reaching `not_a_bathroom` is removed from nearby Maps results.
+- Verification activity awards points and creates a durable leaderboard-ready ledger.
+- `kleenest-bathroom-verification.js` provides the first detail-page action: verify whether the location actually has a public bathroom.
+
 ### Required navigation behavior
 1. App opens: warm GPS/location data in the background.
 2. If local Maps data exists, expose it immediately.
@@ -33,6 +45,11 @@ Maps is the highest-priority product surface. It must feel like an already-popul
 
 ### Visual standard
 The polished Maps buttons/chips are now the reference control language for the entire app: rounded controls, strong active states, depth/shadows, icons, hierarchy, mobile horizontal scrolling and clear press/hover feedback. Future modular surfaces should reuse this visual approach.
+
+## Social visual architecture
+- `kleenest-social-polish.js` is loaded by the authoritative shell before the Social/Game surface mounts.
+- Social/Game controls should use the same polished Maps language: rounded buttons, active gradients, depth/shadows, chips and polished form controls.
+- Do not replace the existing Social/Game feature logic; this layer is visual only.
 
 ## Media / featured-photo architecture
 - `public.location_photos` already existed and now has `is_featured boolean`.
@@ -80,3 +97,4 @@ The polished Maps buttons/chips are now the reference control language for the e
 - Occupancy uses fixture counts including stalls, urinals, sinks, etc.
 - Photos are size-aware; authorized Growth/Enterprise businesses can upload photos and VR/360 media.
 - Multi-location selection must remain available, including All Locations overview.
+- Bathroom verification must be GPS-gated, auditable, and usable as a gamification/data-collection signal.
