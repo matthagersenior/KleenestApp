@@ -1,0 +1,1 @@
+Modular auth wiring checkpoint. See kleenest-app-shell.js for authoritative auth implementation.
