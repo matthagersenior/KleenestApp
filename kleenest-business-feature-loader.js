@@ -7,12 +7,13 @@
    try{
      if(g.KleenestFeatureLoaders?.loadBusiness) await g.KleenestFeatureLoaders.loadBusiness();
      else return setTimeout(boot,150);
-     await load('kleenest-qr.js?business-qr=complete-v4');
-     await load('kleenest-business-admin-complete.js?business-admin=complete-v4');
-     await load('kleenest-business-advanced-controls.js?business-features=complete-v4');
-     await load('kleenest-business-location-enhancements-v1.js?location-context=v3');
-     await load('kleenest-business-location-observer-v1.js?location-observer=v1');
-     console.info('[Kleenest] Complete Business feature stack wired: datasets, all-location context, location CRUD, QR Studio, campaigns, contests, events, promotions, QR/media and admin operations.');
+     await load('kleenest-qr.js?business-qr=complete-v5');
+     await load('kleenest-business-admin-complete.js?business-admin=complete-v5');
+     await load('kleenest-business-advanced-controls.js?business-features=complete-v5');
+     await load('kleenest-business-location-enhancements-v1.js?location-context=v4');
+     await load('kleenest-business-location-observer-v1.js?location-observer=v2');
+     await load('kleenest-map-surface-v2.js?maps-surface=v2');
+     console.info('[Kleenest] Complete Business/Maps feature stack wired: all-location overview, location-aware datasets, location CRUD, QR Studio, campaigns, contests, events, promotions, QR/media/admin operations and working Maps surface.');
      g.dispatchEvent(new CustomEvent('kleenest:business-features-ready'));
    }catch(e){console.error('[Kleenest] Business feature stack failed to load',e)}
  }
