@@ -1,0 +1,2 @@
+/* Canonical Maps loader: deliberately independent of legacy MapsSurface globals. */
+(function(g){'use strict';if(g.__KLEENEST_CANONICAL_LOADER__)return;g.__KLEENEST_CANONICAL_LOADER__=true;function load(){if(g.KleenestCanonicalMaps?.mount)return g.KleenestCanonicalMaps.mount;return null}g.KleenestCanonicalMapsLoader={version:'canonical-loader-v1',get:load};})(window);
