@@ -10,6 +10,7 @@
      await load('kleenest-qr.js?business-qr=complete-v2');
      await load('kleenest-business-admin-complete.js?business-admin=complete-v2');
      await load('kleenest-business-advanced-controls.js?business-features=complete-v2');
+     await load('kleenest-business-location-context.js?location-context=v1');
      console.info('[Kleenest] Complete Business feature stack wired: all datasets, location context, CRUD, QR Studio, campaigns, contests, events, promotions, QR/media and admin operations.');
      g.dispatchEvent(new CustomEvent('kleenest:business-features-ready'));
    }catch(e){console.error('[Kleenest] Business feature stack failed to load',e)}
