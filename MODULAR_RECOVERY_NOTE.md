@@ -20,18 +20,14 @@ Maps is the highest-priority product surface because discovery is the primary re
 - Merge Kleenest + external pins, deduplicate them, and render the same merged dataset in the list and map.
 - Keep All + every category filter working against that merged dataset.
 - Never use the six demo locations as the only map result when external discovery is available.
+- Selecting a marker or list item opens a rich location detail surface.
+- Details include type, distance, rating, review count, amenities, directions, favorite, check-in, review and amenity feedback entry points.
+- User location remains visible while browsing locations.
 
 ### Latest fix
-`kleenest-maps-surface.js` commit `2fe4f71898b738f348a5550bfaf6cb98c814f490` is **maps-surface-23**. It now:
-- dynamically loads the existing `kleenest-map-external-discovery.js` module instead of assuming the shell loaded it;
-- requests high-accuracy browser GPS when Maps opens;
-- stores the actual user coordinates and accuracy;
-- shows a distinct user location marker and accuracy circle;
-- centers the map on the user;
-- queries Supabase and the existing Overpass discovery around that GPS position;
-- merges live/external/Kleenest data and renders up to 500 pins/list entries.
+`kleenest-maps-surface.js` commit `2ddb73b56a6f2ebaf6c80b9b0a5dd98325da1016` is **maps-surface-25**. It restores the full modular location experience on top of the working GPS/map/discovery pipeline. It adds marker-to-detail synchronization, distance, ratings/review counts, amenities, Directions, Favorite, Check In, Leave Review and amenity Feedback entry points while preserving GPS, external discovery and category filtering.
 
-`kleenest-modular-entry.js` is now cache-busted to `shell20` in commit `92ee6e7d195c44171a95d6315248b99850609914` so the current Maps surface can reach the browser.
+`kleenest-modular-entry.js` remains cache-busted to `shell21` in commit `9b4a0d578ec21da9c67acc70592ec8642c08ae46` so the current shell can reach the browser.
 
 ### Verification rule
 Do not claim Maps is fixed merely because commits succeeded. Verify the deployed app for:
@@ -41,9 +37,11 @@ Do not claim Maps is fixed merely because commits succeeded. Verify the deployed
 4. External pins beyond the six demo businesses.
 5. All/category filters populated from the merged dataset.
 6. Marker/list synchronization.
-7. Location details, favorites and route entry.
+7. Location details, distance, rating/review count and amenities.
+8. Directions, Favorite, Check In, Leave Review and amenity Feedback entry points.
+9. Existing shared controllers actually open the corresponding flows when present.
 
-If external pins still do not appear after maps-surface-23, inspect the actual Overpass network response/error and the deployed external-discovery script load. Do not rebuild the map renderer or change Supabase blindly.
+If external pins still do not appear after maps-surface-25, inspect the actual Overpass response/error path and the deployed external-discovery script load. Do not rebuild the map renderer or change Supabase blindly.
 
 ## Social/Games
 - `kleenest-social-game-surface.js` is the parent surface.
@@ -71,7 +69,7 @@ If external pins still do not appear after maps-surface-23, inspect the actual O
 - `37a0b8a1` — QR/business advanced-control source
 
 ## Next work — do as many tasks per pass as possible
-1. Verify Maps after deployment: GPS, user marker, external pins, All/category filters, markers, list, details, favorites and route entry.
+1. Verify Maps after deployment: GPS, user marker, external pins, All/category filters, markers, list, details, favorites, route entry and feedback/check-in/review controller integration.
 2. If external venues still do not appear, inspect the Overpass response/error path before changing Supabase again.
 3. Reconnect durable Social/Game points, contests and rewards.
 4. Verify Business/Admin rich mounts and datasets after identity hydration.
