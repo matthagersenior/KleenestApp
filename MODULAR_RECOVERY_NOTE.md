@@ -11,39 +11,39 @@ A major cause of recent gaps was **not missing functionality**. Several features
 ## Latest Maps checkpoint
 Maps is the highest-priority product surface because discovery is the primary reason users open Kleenest.
 
-Authoritative path:
-`index.html` -> `kleenest-modular-feature-registry.js` -> `kleenest-modular-entry.js` -> `kleenest-app-shell.js` -> `kleenest-maps-surface.js`.
-
-### Actual blockers found
-1. A stale/failed `mapsSurface` script tag could be mistaken for a registered module. This produced **“Maps renderer did not register”** even though the browser had not executed the current surface.
-2. After registration was finally visible, the UI showed the map container but **no map tiles**. The current renderer called `global.L.map(...)` but did not load Leaflet itself, and repository search found no Leaflet implementation/dependency. Thus `global.L` was undefined and `drawMap()` silently returned.
+### Current required behavior
+- Ask for browser GPS automatically when Maps opens.
+- Center the map on the user's actual GPS position.
+- Show a distinct **You are here** marker and GPS accuracy circle.
+- Query Kleenest/Supabase locations around the actual GPS point.
+- Load the already-built external Overpass/OpenStreetMap discovery module and query it around the actual GPS point.
+- Merge Kleenest + external pins, deduplicate them, and render the same merged dataset in the list and map.
+- Keep All + every category filter working against that merged dataset.
+- Never use the six demo locations as the only map result when external discovery is available.
 
 ### Latest fix
-`kleenest-maps-surface.js` commit `d983f632e6c68d1754819cb4cf9d345ee3521738` is now **maps-surface-22**. It is self-contained for the map engine:
-- dynamically loads Leaflet 1.9.4 JavaScript
-- dynamically loads Leaflet CSS
-- waits for Leaflet before drawing
-- creates the actual OSM tile map
-- renders markers and fits bounds to the current dataset
-- keeps the location list and category filters
-- still merges Supabase/Kleenest locations and existing external discovery
-- keeps GPS optional and uses the existing Sparta fallback when needed
+`kleenest-maps-surface.js` commit `2fe4f71898b738f348a5550bfaf6cb98c814f490` is **maps-surface-23**. It now:
+- dynamically loads the existing `kleenest-map-external-discovery.js` module instead of assuming the shell loaded it;
+- requests high-accuracy browser GPS when Maps opens;
+- stores the actual user coordinates and accuracy;
+- shows a distinct user location marker and accuracy circle;
+- centers the map on the user;
+- queries Supabase and the existing Overpass discovery around that GPS position;
+- merges live/external/Kleenest data and renders up to 500 pins/list entries.
 
-Do not mistake the six demo locations for the complete discovery result. The next check is the external discovery adapter and its response path.
+`kleenest-modular-entry.js` is now cache-busted to `shell20` in commit `92ee6e7d195c44171a95d6315248b99850609914` so the current Maps surface can reach the browser.
 
-### Important verification rule
-Do not claim Maps is fixed merely because files committed successfully. The deployed app must be checked for:
-1. Maps surface actually mounting without the generic failure.
-2. Home `Open Maps` and Maps tab both reaching the same surface.
-3. Actual OSM tiles visible in the map container.
-4. External venues appearing beyond the six Kleenest/demo locations.
-5. All category filters returning matching locations.
+### Verification rule
+Do not claim Maps is fixed merely because commits succeeded. Verify the deployed app for:
+1. GPS permission prompt.
+2. User marker and accuracy circle.
+3. Map centered on the user.
+4. External pins beyond the six demo businesses.
+5. All/category filters populated from the merged dataset.
 6. Marker/list synchronization.
 7. Location details, favorites and route entry.
 
-If the map container is still blank after `maps-surface-22`, inspect whether the Leaflet CDN script/CSS is blocked by the deployed environment before changing discovery logic.
-
-If the map renders but only six demo locations appear, inspect the external discovery adapter's availability/response and its script load order before changing Supabase again.
+If external pins still do not appear after maps-surface-23, inspect the actual Overpass network response/error and the deployed external-discovery script load. Do not rebuild the map renderer or change Supabase blindly.
 
 ## Social/Games
 - `kleenest-social-game-surface.js` is the parent surface.
@@ -71,7 +71,7 @@ If the map renders but only six demo locations appear, inspect the external disc
 - `37a0b8a1` — QR/business advanced-control source
 
 ## Next work — do as many tasks per pass as possible
-1. Verify Maps after deployment: tiles first, then external venues, then All/category filters, markers, list, details, favorites and route entry.
+1. Verify Maps after deployment: GPS, user marker, external pins, All/category filters, markers, list, details, favorites and route entry.
 2. If external venues still do not appear, inspect the Overpass response/error path before changing Supabase again.
 3. Reconnect durable Social/Game points, contests and rewards.
 4. Verify Business/Admin rich mounts and datasets after identity hydration.
