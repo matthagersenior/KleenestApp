@@ -15,24 +15,29 @@ Authoritative path:
 `index.html` -> `kleenest-modular-feature-registry.js` -> `kleenest-modular-entry.js` -> `kleenest-app-shell.js` -> `kleenest-maps-surface.js`.
 
 ### Actual blocker found in latest investigation
-The visible `Maps surface failed to load` error was being produced before users could reliably see the current renderer. Two fragile assumptions were identified: optional map dependencies could prevent mounting, and the Maps surface treated the external Leaflet CDN as mandatory. If that CDN request failed, `M.mount()` rejected and the shell displayed the generic failure even though the location/discovery data path could still work.
+The visible `Maps surface failed to load` error was being produced by the shell before the Maps renderer could mount. The shell was treating optional location/external-discovery adapters as mandatory. A failure to load either adapter caused the shell to reject before calling `KleenestMapsSurface.mount()`.
+
+A second important constraint: Maps itself must remain usable even if optional external discovery or the Leaflet CDN fails. The renderer already contains fallback behavior for data and map presentation; the shell must not prevent it from running.
 
 ### Latest fixes
-- `kleenest-maps-surface.js` commit `6f1191f095356ec38fa302f786472a6f4c808b0c`: Leaflet loading is now non-fatal. If Leaflet cannot load, Maps still mounts, renders the location dataset and uses an OpenStreetMap embedded fallback map. Location discovery is independent of the optional map library.
-- `kleenest-modular-feature-registry.js` commit `4c6f5b8a719f781cab09ecbddc5b941671a177d7`: feature script cache version bumped to `r19` so the new Maps surface cannot be silently replaced by the cached `r16` copy.
-- `index.html` currently loads registry `r18` / entry `modular15`; the registry itself now loads individual feature files with `r19`. Do not change index versions unnecessarily; the registry cache version is the relevant feature-file cache boundary.
-- Existing `kleenest-map-external-discovery.js` remains the external venue source and is not being rebuilt.
+- `kleenest-app-shell.js` commit `efe68c4c191ee693fbea8ecf632448f4f92eb23e`: Maps now treats **only `mapsSurface` as mandatory**. Location and external-discovery adapters are loaded after mounting and cannot block Maps startup.
+- `kleenest-modular-entry.js` commit `e74848e13904ef5a0fa8e0f8346de02a705d5fa7`: shell cache version bumped to `shell16`.
+- `index.html` commit `512f57e2556b6ffbfc53d77936ddc4e7662086f`: authoritative runtime bumped to registry `r19` / entry `modular16`.
+- `kleenest-maps-surface.js` commit `1eb25c7302d6445f7c05275f3b81f327d4efde1c`: current self-contained Leaflet renderer, browser-location request, Supabase nearby merge, optional OSM/Overpass merge, filters, markers and location list.
+- Existing `kleenest-map-external-discovery.js` remains the external venue source and is reused rather than rebuilt.
 
 ### Important verification rule
 Do not claim Maps is fixed merely because files committed successfully. The deployed app must be checked for:
 1. Maps surface actually mounting without the generic failure.
-2. External venues appearing beyond the three Kleenest fallback locations.
-3. All category filters returning matching locations.
-4. Marker/list synchronization when Leaflet is available.
-5. Embedded map fallback when Leaflet is unavailable.
-6. Home `Open Maps` and Maps tab both reaching the same surface.
+2. Home `Open Maps` and Maps tab both reaching the same surface.
+3. External venues appearing beyond the three Kleenest fallback locations.
+4. All category filters returning matching locations.
+5. Marker/list synchronization when Leaflet is available.
+6. Location details, favorites and route entry.
 
-If external venues fail, inspect the Overpass response/error path before changing the Supabase dataset again.
+If Maps still reports **“Maps surface failed to load”**, inspect the actual deployed `index -> entry -> shell -> registry -> mapsSurface` script chain first. Do not change Supabase or rebuild discovery until that chain is verified.
+
+If Maps mounts but external venues are missing, inspect the Overpass response/error path before changing the Supabase dataset again.
 
 ## Social/Games
 - `kleenest-social-game-surface.js` is the parent surface.
