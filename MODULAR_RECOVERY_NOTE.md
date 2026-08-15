@@ -14,27 +14,36 @@ Maps is the highest-priority product surface because discovery is the primary re
 Authoritative path:
 `index.html` -> `kleenest-modular-feature-registry.js` -> `kleenest-modular-entry.js` -> `kleenest-app-shell.js` -> `kleenest-maps-surface.js`.
 
-### Actual blocker found in latest investigation
-The generic `Maps surface failed to load` message was still possible because the registry treated the mere presence of a `script[data-kleenest-feature="mapsSurface"]` tag as proof that the module had registered. A stale/failed script tag could therefore make `registry.load('mapsSurface')` resolve while `window.KleenestMapsSurface` was undefined. The shell then failed at the mount check.
+### Actual blockers found
+1. A stale/failed `mapsSurface` script tag could be mistaken for a registered module. This produced **“Maps renderer did not register”** even though the browser had not executed the current surface.
+2. After registration was finally visible, the UI showed the map container but **no map tiles**. The current renderer called `global.L.map(...)` but did not load Leaflet itself, and repository search found no Leaflet implementation/dependency. Thus `global.L` was undefined and `drawMap()` silently returned.
 
-### Latest fixes
-- `kleenest-app-shell.js` commit `dfcc57acb0cbaa1cdf521c9cfd0b0fcac318dd59`: Maps now bypasses the fragile registry path for the critical renderer. It removes a stale Maps script tag when necessary, directly loads `kleenest-maps-surface.js` with a unique cache-busting query, and verifies `window.KleenestMapsSurface.mount` before mounting. Location and external-discovery adapters remain optional after mount.
-- `kleenest-modular-entry.js` commit `e1196acc81da5c79246228d2bda665fac1e95fb6`: shell cache version bumped to `shell17` so the direct Maps loading fix reaches the browser.
-- `kleenest-maps-surface.js` remains the self-contained renderer with Leaflet/OSM fallback, browser-location request, Supabase nearby merge, external discovery merge, filters, markers and location list.
-- The registry remains available for all other modular features; the Maps renderer is intentionally direct-loaded because it is the highest-priority critical surface and must not depend on a stale registry tag.
+### Latest fix
+`kleenest-maps-surface.js` commit `d983f632e6c68d1754819cb4cf9d345ee3521738` is now **maps-surface-22**. It is self-contained for the map engine:
+- dynamically loads Leaflet 1.9.4 JavaScript
+- dynamically loads Leaflet CSS
+- waits for Leaflet before drawing
+- creates the actual OSM tile map
+- renders markers and fits bounds to the current dataset
+- keeps the location list and category filters
+- still merges Supabase/Kleenest locations and existing external discovery
+- keeps GPS optional and uses the existing Sparta fallback when needed
+
+Do not mistake the six demo locations for the complete discovery result. The next check is the external discovery adapter and its response path.
 
 ### Important verification rule
 Do not claim Maps is fixed merely because files committed successfully. The deployed app must be checked for:
 1. Maps surface actually mounting without the generic failure.
 2. Home `Open Maps` and Maps tab both reaching the same surface.
-3. External venues appearing beyond the three Kleenest fallback locations.
-4. All category filters returning matching locations.
-5. Marker/list synchronization when Leaflet is available.
-6. Location details, favorites and route entry.
+3. Actual OSM tiles visible in the map container.
+4. External venues appearing beyond the six Kleenest/demo locations.
+5. All category filters returning matching locations.
+6. Marker/list synchronization.
+7. Location details, favorites and route entry.
 
-If Maps still reports **“Maps surface failed to load”**, inspect the deployed `index -> entry -> shell` chain and the direct Maps script response. Do not change Supabase or rebuild discovery until that script chain is verified.
+If the map container is still blank after `maps-surface-22`, inspect whether the Leaflet CDN script/CSS is blocked by the deployed environment before changing discovery logic.
 
-If Maps mounts but external venues are missing, inspect the Overpass response/error path before changing the Supabase dataset again.
+If the map renders but only six demo locations appear, inspect the external discovery adapter's availability/response and its script load order before changing Supabase again.
 
 ## Social/Games
 - `kleenest-social-game-surface.js` is the parent surface.
@@ -62,7 +71,7 @@ If Maps mounts but external venues are missing, inspect the Overpass response/er
 - `37a0b8a1` — QR/business advanced-control source
 
 ## Next work — do as many tasks per pass as possible
-1. Verify Maps after deployment: external venues must appear, not just fallback Kleenest locations. Check All and every category, markers, list, details, favorites and route entry.
+1. Verify Maps after deployment: tiles first, then external venues, then All/category filters, markers, list, details, favorites and route entry.
 2. If external venues still do not appear, inspect the Overpass response/error path before changing Supabase again.
 3. Reconnect durable Social/Game points, contests and rewards.
 4. Verify Business/Admin rich mounts and datasets after identity hydration.
