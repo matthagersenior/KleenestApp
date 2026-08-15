@@ -15,21 +15,22 @@ Authoritative path:
 `index.html` -> `kleenest-modular-feature-registry.js` -> `kleenest-modular-entry.js` -> `kleenest-app-shell.js` -> `kleenest-maps-surface.js`.
 
 ### Actual blocker found in latest investigation
-The visible `Maps surface failed to load` error was being produced by the shell because **all three Maps dependencies were treated as mandatory**. The shell called `loadMany(['location','mapExternal','mapsSurface'])`; if either location or external discovery failed, the shell never reached `mapsSurface.mount()` and displayed the generic failure. That hid the actual map renderer from the user.
+The visible `Maps surface failed to load` error was being produced before users could reliably see the current renderer. Two fragile assumptions were identified: optional map dependencies could prevent mounting, and the Maps surface treated the external Leaflet CDN as mandatory. If that CDN request failed, `M.mount()` rejected and the shell displayed the generic failure even though the location/discovery data path could still work.
 
 ### Latest fixes
-- `kleenest-app-shell.js` commit `456294de4909fcea156ca4a754a9ec9961533c15`: Maps no longer requires optional legacy adapters before mounting. It loads `location`, `mapExternal`, and `mapsSurface`; the current Maps surface is self-contained and owns fallback behavior.
-- `index.html` commit `0b757e30b250b752502dee75fceba9b7f21667d5`: authoritative modular cache versions bumped to registry `r18` / entry `modular15`.
-- `kleenest-maps-surface.js` commit `1eb25c7302d6445f7c05275f3b81f327d4efde1c`: self-contained Leaflet renderer, browser-location request, Supabase nearby merge, OSM/Overpass merge, filters, markers and location list.
-- Existing `kleenest-map-external-discovery.js` commit `d952282b501f4055e22ae1ce0b9d068a6f436b2e` is retained as the external venue source.
+- `kleenest-maps-surface.js` commit `6f1191f095356ec38fa302f786472a6f4c808b0c`: Leaflet loading is now non-fatal. If Leaflet cannot load, Maps still mounts, renders the location dataset and uses an OpenStreetMap embedded fallback map. Location discovery is independent of the optional map library.
+- `kleenest-modular-feature-registry.js` commit `4c6f5b8a719f781cab09ecbddc5b941671a177d7`: feature script cache version bumped to `r19` so the new Maps surface cannot be silently replaced by the cached `r16` copy.
+- `index.html` currently loads registry `r18` / entry `modular15`; the registry itself now loads individual feature files with `r19`. Do not change index versions unnecessarily; the registry cache version is the relevant feature-file cache boundary.
+- Existing `kleenest-map-external-discovery.js` remains the external venue source and is not being rebuilt.
 
 ### Important verification rule
-Do not claim Maps is fixed merely because the files committed successfully. The deployed app must be checked for:
-1. Maps surface actually mounting.
+Do not claim Maps is fixed merely because files committed successfully. The deployed app must be checked for:
+1. Maps surface actually mounting without the generic failure.
 2. External venues appearing beyond the three Kleenest fallback locations.
 3. All category filters returning matching locations.
-4. Marker/list synchronization.
-5. Home `Open Maps` and Maps tab both reaching the same surface.
+4. Marker/list synchronization when Leaflet is available.
+5. Embedded map fallback when Leaflet is unavailable.
+6. Home `Open Maps` and Maps tab both reaching the same surface.
 
 If external venues fail, inspect the Overpass response/error path before changing the Supabase dataset again.
 
@@ -78,4 +79,3 @@ If external venues fail, inspect the Overpass response/error path before changin
 - Occupancy uses fixture counts including stalls, urinals, sinks, etc.
 - Photos are size-aware; authorized Growth/Enterprise businesses can upload photos and VR/360 media.
 - Multi-location selection must remain available, including All Locations overview.
-- Keep startup lazy/non-blocking; no polling loops, recursive startup rendering, duplicate auth systems, or monolith imports.
