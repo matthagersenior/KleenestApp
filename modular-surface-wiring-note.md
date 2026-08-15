@@ -1,0 +1,1 @@
+The modular registry now points only to files that exist on refactor/monolith-removal. The shell must initialize shared Supabase before Maps/Business/Admin surfaces and must use existing modular files rather than monolith indexes. Current registry fix commit: 982ac3065d6d036b3da60e74361ee75c8e0137ff. Next: wire shell surfaces to those existing modules and verify deployment.
