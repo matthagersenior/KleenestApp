@@ -1,0 +1,1 @@
+The modular shell owns authentication. The monolith remains reference only.
