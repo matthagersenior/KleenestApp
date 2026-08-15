@@ -21,7 +21,7 @@ Maps is the highest-priority product surface. It must feel like an already-popul
 - The modular bootstrap loads the Maps session/preloader before the app shell.
 - `kleenest-maps-surface.js` is a renderer/consumer only: it must not independently start discovery or own a second GPS lifecycle.
 - The legacy `kleenest-map-discovery-bootstrap.js` is compatibility-only and delegates to the persistent preloader; it must not run an independent startup discovery pipeline.
-- Current implementation cache key is `kleenest.maps.cache.v19`; location data may be shown for up to 7 days while fresh network data refreshes after 15 minutes.
+- Current implementation cache key is `kleenest.maps.cache.v20` after the manual-refresh/GPS orchestration fix; old cache versions are intentionally not reused by the repaired service.
 - Current session key is `kleenest.maps.session.v1`.
 
 ### Bathroom verification architecture
@@ -84,16 +84,18 @@ Implemented on `refactor/monolith-removal`:
 - `kleenest-map-preloader.js` is now explicitly the sole data/GPS owner; cache-first behavior is preserved and map media is loaded by the preloader.
 - `kleenest-maps-surface.js` now renders immediately from the shared cache, restores session center/zoom/filters, saves Leaflet `moveend`, saves category/amenity changes through `KleenestMapSession`, and no longer has its own geolocation fallback or `<20` refresh trigger.
 - `kleenest-map-discovery-bootstrap.js` is now a compatibility bridge that delegates to the preloader rather than performing independent Supabase/local discovery.
-- Cache version was intentionally advanced to `v19` to prevent stale pre-fix cache state from being mistaken for the repaired cache contract.
+- Manual Maps Refresh now calls `preloader.refreshWithLocation(true)`, so Refresh acquires/reuses the shared GPS position before starting Supabase + OSM/Overpass discovery. Previously, Refresh could fail silently when no GPS position existed yet because `preloader.refresh()` requires a location.
+- Cache version was intentionally advanced to `v20` to prevent stale pre-fix cache state from being mistaken for the repaired cache contract.
 
 ## Verification still required
 1. Browser test cold launch with cached locations and confirm Maps paints before network discovery completes.
 2. Navigate Home → Maps → Home → Maps and confirm no second GPS permission/request and no duplicate discovery pipeline.
 3. Move/zoom the map, leave Maps, return, and confirm center/zoom restore.
 4. Change category/amenity, leave Maps, return, and confirm filters restore.
-5. Trigger background discovery and confirm existing pins remain while merged results arrive.
-6. Verify real uploaded featured photos render; mock `location_photos` rows without Storage objects are not sufficient.
-7. Verify Growth/Enterprise featured-photo selection after real uploads.
+5. Press **Refresh** before GPS is initialized and confirm it acquires/reuses shared GPS, runs both discovery sources, and increases the merged result count when sources return additional locations.
+6. Verify background discovery does not clear existing pins while new results arrive.
+7. Verify real uploaded featured photos render; mock `location_photos` rows without Storage objects are not sufficient.
+8. Verify Growth/Enterprise featured-photo selection after real uploads.
 
 ## Next work — do as many tasks per pass as possible
 1. Complete the browser verification above.
