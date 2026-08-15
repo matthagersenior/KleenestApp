@@ -25,10 +25,15 @@
   return ['other','Nearby Places'];
  }
  function mapEl(el,lat,lng){const t=el.tags||{},[segment,label]=classify(t),name=t.name||t.brand||t.operator||label;const addr=[t['addr:housenumber'],t['addr:street'],t['addr:city']].filter(Boolean).join(' ');return{id:'osm-'+el.type+'-'+el.id,name,address:addr||'Nearby',lat,lng,place_type:segment,segment,source:'osm',restroomConfidence:segment==='toilets'?'confirmed':'possible',accessible:t.wheelchair==='yes'||t['toilets:wheelchair']==='yes',changing:t.changing_table==='yes'||t.diaper==='yes',amenities:segment==='toilets'?['Mapped restroom']:[],hours:t.opening_hours||'See venue hours',osmTags:t};}
- const selector='nwr["amenity"~"toilets|fuel|restaurant|fast_food|cafe|bar|pub|library|post_office|school|college|university|kindergarten|place_of_worship|townhall|courthouse|police|fire_station|hospital|clinic|doctors|dentist|bank|atm|cinema|theatre|community_centre|social_centre"];nwr["shop"~"supermarket|convenience|mall|department_store|bakery|pharmacy|clothes|books"];nwr["leisure"~"park|nature_reserve|playground|sports_centre"];nwr["railway"="station"];nwr["public_transport"];nwr["aeroway"~"aerodrome|terminal|helipad"];nwr["building"~"church|chapel"];nwr["tourism"~"museum|gallery|hotel|motel|hostel"];';
+ const filters=[
+  '["amenity"~"toilets|fuel|restaurant|fast_food|cafe|bar|pub|library|post_office|school|college|university|kindergarten|place_of_worship|townhall|courthouse|police|fire_station|hospital|clinic|doctors|dentist|bank|atm|cinema|theatre|community_centre|social_centre"]',
+  '["shop"~"supermarket|convenience|mall|department_store|bakery|pharmacy|clothes|books"]',
+  '["leisure"~"park|nature_reserve|playground|sports_centre"]',
+  '["railway"="station"]','["public_transport"]','["aeroway"~"aerodrome|terminal|helipad"]','["building"~"church|chapel"]','["tourism"~"museum|gallery|hotel|motel|hostel"]'
+ ];
  X.nearby=async(lat,lng,radiusMeters=25000)=>{
-  const q=`[out:json][timeout:25];(${selector})(around:${Math.min(Math.max(Number(radiusMeters)||25000,1000),30000)},${Number(lat)},${Number(lng)});out center tags;`;
-  const data=await query(q),seen=new Set(),out=[];
+  const r=Math.min(Math.max(Number(radiusMeters)||25000,1000),30000),union=filters.map(f=>`nwr${f}(around:${r},${Number(lat)},${Number(lng)});`).join('');
+  const data=await query(`[out:json][timeout:25];(${union});out center tags;`),seen=new Set(),out=[];
   (data.elements||[]).forEach(e=>{const p=mapEl(e,Number(e.lat??e.center?.lat),Number(e.lon??e.center?.lon));if(!Number.isFinite(p.lat)||!Number.isFinite(p.lng))return;const key=(p.name||'').toLowerCase()+'|'+p.lat.toFixed(4)+'|'+p.lng.toFixed(4)+'|'+p.segment;if(seen.has(key))return;seen.add(key);p.distance_miles=hav(lat,lng,p.lat,p.lng);out.push(p)});
   return out.sort((a,b)=>a.distance_miles-b.distance_miles).slice(0,5000);
  };
