@@ -1,41 +1,36 @@
 # Modular Recovery Note
 
 ## Mission / purpose
-The large 5,000+ line `index.html` is the **monolith reference/demo/test/upgrade source**. It is NOT the modular production runtime. The purpose of this work is to migrate useful monolith features into maintainable modular files and expose those modules through one authoritative shell on `refactor/monolith-removal`.
+The large 5,000+ line `index.html` is the **monolith reference/demo/test/upgrade source**. It is NOT the modular production runtime. The purpose is to migrate useful monolith features into maintainable modular files and expose them through one authoritative shell on `refactor/monolith-removal`.
 
 When told to "look for the note", read this file first. Do not restart the investigation and do not replace the modular runtime with the monolith.
 
 ## Current Maps architecture
-Maps is the highest-priority product surface. It must feel persistent and instant rather than restarting GPS/data discovery every time the user changes tabs.
+Maps is the highest-priority product surface. It must feel like an already-populated discovery map, not a page that starts over every time the user taps Maps.
 
-### Persistent Maps behavior
-- `kleenest-map-preloader.js` is the single Maps data/GPS service.
-- It starts once and guards itself with `__KLEENEST_MAP_PRELOADER__`.
-- It uses one `navigator.geolocation.watchPosition()` watcher rather than starting a new GPS request on every Maps mount.
-- It hydrates the merged location dataset and last known user position from `localStorage` first.
-- Cache key is `kleenest.maps.cache.v10`.
-- Cached location data can remain usable for up to 7 days; it is considered fresh for 15 minutes.
-- Fresh cached data is displayed immediately; stale data is refreshed in the background.
-- Supabase/Kleenest locations, OSM/Overpass discovery, and local location data are merged and deduplicated rather than replacing the existing cache.
-- The Maps surface should consume `window.KleenestLocations` / `window.KleenestMapCache`, not start its own independent GPS/data pipeline.
-- Navigation back to Maps must not request GPS again when the shared watcher/user position already exists.
+- `kleenest-map-preloader.js` is the persistent location-data service.
+- `kleenest-map-session.js` preserves Maps view/filter state across navigation and browser sessions.
+- GPS uses one `watchPosition` watcher and a shared promise; individual Maps mounts must not request GPS again.
+- Location data is cached in localStorage and exposed as `KleenestLocations`.
+- Cached data is shown immediately; Supabase + OSM/Overpass refresh happens in the background after the freshness window.
+- The modular bootstrap loads the Maps session/preloader before the app shell.
+- The Maps surface must consume the shared cache rather than independently starting a new discovery/GPS process.
+- Current local cache key is `kleenest.maps.cache.v11`; location data may be shown for up to 7 days while fresh network data refreshes after 15 minutes.
+- Current session key is `kleenest.maps.session.v1`.
 
-### Bootstrap
-`kleenest-modular-entry.js` now warms `kleenest-map-preloader.js?preload=10` before loading the authoritative app shell (`shell30`).
+### Required navigation behavior
+1. App opens: warm GPS/location data in the background.
+2. If local Maps data exists, expose it immediately.
+3. Navigate away from Maps: do NOT destroy the shared location/GPS state.
+4. Return to Maps: mount the existing cached dataset immediately; do not prompt/re-request GPS.
+5. Preserve map center, zoom, category and amenity filters where possible.
+6. Background refresh updates the shared cache without clearing visible results.
+7. OSM/Overpass and database results are merged and persisted rather than replacing prior locations.
 
-### Design standard
-The polished Maps chips/buttons are now the visual reference for the rest of the app: rounded controls, clear primary/secondary hierarchy, subtle depth, active state, icons, responsive horizontal scrolling where appropriate, and consistent interaction feedback. Do not revert to plain default browser buttons.
+### Visual standard
+The polished Maps buttons/chips are now the reference control language for the entire app: rounded controls, strong active states, depth/shadows, icons, hierarchy, mobile horizontal scrolling and clear press/hover feedback. Future modular surfaces should reuse this visual approach.
 
-## Maps product behavior
-- GPS user marker + accuracy circle.
-- Supabase/Kleenest locations + OSM/Overpass locations.
-- All/category filters + premium amenity filters.
-- Rich location cards/details.
-- Directions, favorites, check-in, review and amenity feedback entry points.
-- Check-in must be geofenced; review requires a verified check-in for that location.
-- External locations are discovery data; business-owned data remains authoritative for business-managed fields.
-
-## Existing modular feature sources to reconnect
+## Existing feature sources to keep migrating/reusing
 - `f219de80` — advanced QR + business CRUD controls
 - `636fe781` — authoritative Business workspace + analytics
 - `c6f9a625` — modular Game Center / `kleenest-engagement.js`
@@ -49,19 +44,17 @@ The polished Maps chips/buttons are now the visual reference for the rest of the
 - `8c775b3` — secure business data layer
 - `ce4895` — reconciled business data/state wiring
 - `37a0b8a1` — QR/business advanced-control source
-- `f61b40bc` — shared geofence checks
-- `ed04d867` — shared check-in location routing
-- `7a0d685` — authenticated check-in/review runtime actions
 
-## Next work
-1. Verify deployed Maps does not remount/restart GPS/data discovery on tab navigation.
-2. Verify local-first cache is visible immediately after a full refresh, then background refreshes.
-3. Reconnect durable Social/Game/Rewards services.
-4. Reconnect Business/Admin datasets and polished controls.
-5. Reconnect QR Studio + advanced CRUD with Growth+/owner/admin gating.
-6. Reconnect Photos/Media/VR, Partnerships, Campaigns, Promos/Offers, Events, Reviews/Replies and amenities.
-7. Keep datasets location-specific and calculation-specific.
-8. Never restore the monolithic renderer as the modular runtime.
+## Next work — do as many tasks per pass as possible
+1. Verify Maps navigation does not repeat GPS/loading when returning to the tab.
+2. Verify local cache appears immediately on a cold browser launch before network discovery finishes.
+3. Verify background refresh merges new OSM/Overpass and Supabase locations without clearing existing pins.
+4. Reconnect durable Social/Game points, contests and rewards.
+5. Verify Business/Admin rich mounts and datasets after identity hydration.
+6. Reconnect QR Studio + advanced CRUD with Growth+/owner/admin gating.
+7. Reconnect Photos/Media/VR, Partnerships, Campaigns, Promos/Offers, Events, Reviews/Replies and amenities.
+8. Apply the polished Maps button/chip language throughout the remaining modular surfaces.
+9. Never restore the monolithic renderer as the modular runtime.
 
 ## Non-negotiable product rules
 - Branding: `Kleenest` only; never `KKleenest` or `Cleanest` in displayed app copy.
