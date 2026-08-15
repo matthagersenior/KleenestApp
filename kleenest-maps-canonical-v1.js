@@ -1,9 +1,9 @@
-/* Kleenest canonical Maps runtime v3. Hardened selection/hydration for sparse public OSM records. */
-(function(g){'use strict';if(g.__KLEENEST_CANONICAL_MAPS_V3__)return;g.__KLEENEST_CANONICAL_MAPS_V3__=true;
-/* v3 deliberately preserves the v2 UI contract while making every public/OSM result safe to select. */
-const previous=g.KleenestCanonicalMaps;
-function safe(fn,fallback){try{const v=fn();return v??fallback}catch(e){console.warn('[Kleenest Maps] safe operation failed',e);return fallback}}
-if(previous?.mount){g.KleenestCanonicalMaps={version:'canonical-v3',mount:async function(root){try{return await previous.mount(root)}catch(e){console.error('[Kleenest Maps] mount failed',e);root.innerHTML='<div style="padding:16px">Map could not be loaded. Please try again.</div>';}}};}
-/* Normalize common OSM/search shapes before the v2 renderer sees them. */
-const oldCache=g.KleenestMapCache;if(oldCache?.locations)oldCache.locations=oldCache.locations.map((x,i)=>{const t=x?.source_metadata?.tags||x?.source_metadata?.osm?.tags||{};return {...x,id:x.id||x.location_id||x.source_external_id||'location-'+i,name:x.name||t.name||t.brand||t.operator||'Public Location',lat:Number(x.lat??x.latitude??x.geometry?.lat),lng:Number(x.lng??x.longitude??x.lon??x.geometry?.lon),source_metadata:x.source_metadata||{tags:t}}});
+/* Kleenest canonical Maps runtime v4. Public-result-safe selection/hydration. */
+(function(g){'use strict';if(g.__KLEENEST_CANONICAL_MAPS_V4__)return;g.__KLEENEST_CANONICAL_MAPS_V4__=true;
+const old=g.KleenestCanonicalMaps;const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isUuid(v){return UUID.test(String(v||''))}
+/* Wrap the existing canonical mount without allowing an unhandled selection/hydration exception to freeze the shell. */
+if(old?.mount){g.KleenestCanonicalMaps={version:'canonical-v4',mount:async function(root){try{return await old.mount(root)}catch(e){console.error('[Kleenest Maps] mount error',e);root.innerHTML='<div style="padding:16px"><strong>Maps temporarily unavailable.</strong><p>Please reopen Maps.</p></div>';}}};}
+/* Public-search records are allowed to be non-UUID keyed; expose a safe resolver for the canonical renderer. */
+g.KleenestMapsIdentity={version:'v4',isSupabaseLocationId:isUuid,resolveId:function(x){if(!x)return null;if(isUuid(x.id))return {mode:'supabase',id:x.id};if(x.location_id&&isUuid(x.location_id))return {mode:'supabase',id:x.location_id};if(x.source_external_id)return {mode:'external',id:String(x.source_external_id)};if(x.osm_id)return {mode:'external',id:String(x.osm_id)};return {mode:'local',id:String(x.id||'')};}};
 })(window);
