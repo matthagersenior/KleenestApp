@@ -1,0 +1,9 @@
+/* Helper used by the modular shell to initialize existing feature modules. */
+(function(){'use strict';
+window.KleenestModularSurfaceWiring={
+ async core(){if(!window.supabase?.createClient){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.onload=r;s.onerror=j;document.head.appendChild(s)})}if(!window.KleenestSupabase){await new Promise((r,j)=>{const s=document.createElement('script');s.src='kleenest-supabase.js?modular=surface1';s.onload=r;s.onerror=j;document.head.appendChild(s)})}},
+ async maps(root){await this.core();await window.KleenestFeatureRegistry.loadMany(['location','mapFilters','maps','mapCompat']);const rows=window.KleenestData?.restrooms||window.KleenestState?.restrooms||[];root.innerHTML='<h1>Nearby locations</h1>'+(rows.length?rows.slice(0,40).map(x=>`<div class="card"><b>${String(x.name||'Location')}</b><div class="muted">${String(x.address||x.city||'Nearby location')}</div></div>`).join(''):'<p class="muted">Location discovery is ready; no local records are loaded yet.</p>');await window.KleenestMapDiscovery?.load?.('maps-open')},
+ async social(root){await this.core();await window.KleenestFeatureRegistry.loadMany(['reviews','rewards']);root.innerHTML='<h1>Social & Games</h1><div class="card"><h3>Community</h3><p>Reviews, rewards, check-ins and community participation are connected to the modular layer.</p></div>'},
+ async business(root){await this.core();await window.KleenestFeatureRegistry.loadMany(['business','businessAnalytics','qr','businessActions','businessManagement']);const B=window.KleenestBusinessWorkspace;if(B?.mount)return B.mount(root);if(B?.render)return B.render(root)},
+ async admin(root){await this.core();await window.KleenestFeatureRegistry.loadMany(['businessAdmin','businessAnalytics','qr']);const A=window.KleenestBusinessAdminComplete;if(A?.admin)return A.admin(root);root.innerHTML='<h1>Admin</h1>'}
+};})();
