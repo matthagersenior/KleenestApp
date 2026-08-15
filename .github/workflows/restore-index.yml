@@ -1,28 +1,10 @@
-name: Restore original Kleenest app
+name: Disabled legacy index restore
 
 on:
-  push:
-    branches: [main]
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  restore:
-    if: ${{ !contains(github.event.head_commit.message, '[restore-index]') }}
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Restore index.html from known-good app commit
-        run: |
-          git checkout 7ffd4895a9bbcd546f7316eb8ec46230e4062f36 -- index.html
-          git diff --exit-code -- index.html && exit 0 || true
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git commit -m "[restore-index] Restore original Kleenest app"
-          git push
+      - run: echo "Legacy monolith index restoration is intentionally disabled."
