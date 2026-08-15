@@ -14,13 +14,24 @@ Maps is the highest-priority product surface because discovery is the primary re
 Authoritative path:
 `index.html` -> `kleenest-modular-feature-registry.js` -> `kleenest-modular-entry.js` -> `kleenest-app-shell.js` -> `kleenest-maps-surface.js`.
 
-Completed:
-- `kleenest-maps-surface.js` owns the complete merged discovery pipeline: browser location, Supabase nearby locations, existing OSM/Overpass discovery, merged results, filters/list/markers.
-- Existing Overpass/OpenStreetMap discovery is reused; do not rebuild it unnecessarily.
-- The shell does not dispatch a competing external dataset after Maps mounts.
-- **Current failure found:** the browser was still able to cache the older `kleenest-modular-entry.js`, which loaded `kleenest-app-shell.js` without a cache-busting query. That meant the newest shell changes were not necessarily executing.
-- Fixed `kleenest-modular-entry.js` to load `kleenest-app-shell.js?modular=20260815-shell15` (commit `54bd5ed24fd07ff9636a2ee2f796ec0f8913dab9`).
-- Fixed the shell Maps branch to load the authoritative Maps surface directly and avoid the legacy `maps` discovery bootstrap as a prerequisite. This prevents an unrelated legacy bootstrap failure from causing the visible error `Maps surface failed to load`.
+### Actual blocker found in latest investigation
+The visible `Maps surface failed to load` error was being produced by the shell because **all three Maps dependencies were treated as mandatory**. The shell called `loadMany(['location','mapExternal','mapsSurface'])`; if either location or external discovery failed, the shell never reached `mapsSurface.mount()` and displayed the generic failure. That hid the actual map renderer from the user.
+
+### Latest fixes
+- `kleenest-app-shell.js` commit `456294de4909fcea156ca4a754a9ec9961533c15`: Maps no longer requires optional legacy adapters before mounting. It loads `location`, `mapExternal`, and `mapsSurface`; the current Maps surface is self-contained and owns fallback behavior.
+- `index.html` commit `0b757e30b250b752502dee75fceba9b7f21667d5`: authoritative modular cache versions bumped to registry `r18` / entry `modular15`.
+- `kleenest-maps-surface.js` commit `1eb25c7302d6445f7c05275f3b81f327d4efde1c`: self-contained Leaflet renderer, browser-location request, Supabase nearby merge, OSM/Overpass merge, filters, markers and location list.
+- Existing `kleenest-map-external-discovery.js` commit `d952282b501f4055e22ae1ce0b9d068a6f436b2e` is retained as the external venue source.
+
+### Important verification rule
+Do not claim Maps is fixed merely because the files committed successfully. The deployed app must be checked for:
+1. Maps surface actually mounting.
+2. External venues appearing beyond the three Kleenest fallback locations.
+3. All category filters returning matching locations.
+4. Marker/list synchronization.
+5. Home `Open Maps` and Maps tab both reaching the same surface.
+
+If external venues fail, inspect the Overpass response/error path before changing the Supabase dataset again.
 
 ## Social/Games
 - `kleenest-social-game-surface.js` is the parent surface.
