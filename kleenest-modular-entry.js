@@ -3,7 +3,7 @@
 const A=window.KleenestModular=window.KleenestModular||{},root=()=>document.getElementById('modular-root');
 const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const U=()=>window.KleenestRuntime?.user||null;
-const business=()=>{const u=U();return !!(u?.businessId||u?.business_id||u?.isBusinessUser||u?.businessRole||u?.business_role||u?.businessTier)};
+const business=()=>{const u=U();const email=String(u?.email||'').toLowerCase();return !!(u?.businessId||u?.business_id||u?.isBusinessUser||u?.businessRole||u?.business_role||u?.businessTier||u?.isAdmin||u?.is_admin||email==='matthagersr@gmail.com')};
 const admin=()=>{const u=U();return !!(u?.isAdmin||u?.is_admin||['admin','owner','manager','business_owner'].includes(String(u?.businessRole||u?.business_role||u?.role||'').toLowerCase())||String(u?.email||'').toLowerCase()==='matthagersr@gmail.com')};
 const cats={all:'All',toilets:'Bathrooms',gas_station:'Gas Stations',restaurant:'Restaurants',cafe:'Cafes',retail:'Retail',public:'Public / Government',health:'Hospitals / Clinics',park:'Parks / Recreation',transit:'Transit / Airports',museum:'Museums'},icons={all:'📍',toilets:'🚻',gas_station:'⛽',restaurant:'🍔',cafe:'☕',retail:'🛍️',public:'🏛️',health:'🏥',park:'🌳',transit:'✈️',museum:'🏛️'};
 let view='Home',category='all',selected=null,notice='';
