@@ -8,18 +8,20 @@ When told to "look for the note", read this file first. Do not restart the inves
 ## Current Maps architecture
 Maps is the highest-priority product surface. It must feel like an already-populated discovery map, not a page that starts over every time the user taps Maps.
 
-- `kleenest-map-preloader.js` is the persistent location-data service.
+- `kleenest-map-preloader.js` is the **sole persistent location-data/GPS/discovery service**.
 - `kleenest-map-session.js` preserves Maps view/filter state across navigation and browser sessions.
 - GPS uses one `watchPosition` watcher and a shared promise; individual Maps mounts must not request GPS again.
 - Location data is cached in localStorage and exposed as `KleenestLocations`.
-- Cached data is shown immediately; Supabase + OSM/Overpass refresh happens in the background after the freshness window.
+- Maps renders from the shared cache immediately; the preloader owns background Supabase + OSM/Overpass refresh after the freshness window.
+- Background discovery merges with the existing cache and emits `kleenest:map-data-updated`; it does not clear visible results first.
 - `kleenest-map-media.js` is loaded by the preloader and fixes Leaflet's broken default marker assets with an inline Kleenest pin.
 - `kleenest-map-media.js` also decorates Maps result/detail cards with a business-selected featured location photo.
 - Featured photos use the existing `location_photos` table and `location-photos` Storage bucket.
 - Growth and Enterprise businesses can choose a featured photo through `set_featured_location_photo`; the database enforces ownership and tier authorization.
 - The modular bootstrap loads the Maps session/preloader before the app shell.
-- The Maps surface must consume the shared cache rather than independently starting a new discovery/GPS process.
-- Current local cache key is `kleenest.maps.cache.v11`; location data may be shown for up to 7 days while fresh network data refreshes after 15 minutes.
+- `kleenest-maps-surface.js` is a renderer/consumer only: it must not independently start discovery or own a second GPS lifecycle.
+- The legacy `kleenest-map-discovery-bootstrap.js` is compatibility-only and delegates to the persistent preloader; it must not run an independent startup discovery pipeline.
+- Current implementation cache key is `kleenest.maps.cache.v19`; location data may be shown for up to 7 days while fresh network data refreshes after 15 minutes.
 - Current session key is `kleenest.maps.session.v1`.
 
 ### Bathroom verification architecture
@@ -42,8 +44,9 @@ Maps is the highest-priority product surface. It must feel like an already-popul
 5. Preserve map center, zoom, category and amenity filters where possible.
 6. Background refresh updates the shared cache without clearing visible results.
 7. OSM/Overpass and database results are merged and persisted rather than replacing prior locations.
+8. The Maps surface must never use a local-count threshold to decide whether to refresh; refresh policy belongs to the preloader.
 
-### Visual standard
+## Visual standard
 The polished Maps buttons/chips are now the reference control language for the entire app: rounded controls, strong active states, depth/shadows, icons, hierarchy, mobile horizontal scrolling and clear press/hover feedback. Future modular surfaces should reuse this visual approach.
 
 ## Social visual architecture
@@ -74,18 +77,34 @@ The polished Maps buttons/chips are now the reference control language for the e
 - `ce4895` — reconciled business data/state wiring
 - `37a0b8a1` — QR/business advanced-control source
 
+## Latest Maps pass — 2026-08-15
+Investigation found three orchestration regressions: the Maps surface waited for `preloader.load()` before rendering, it independently forced refresh when fewer than 20 locations existed, and the legacy discovery bootstrap could independently initiate a second discovery lifecycle. The session controller also persisted center/zoom/filters but the renderer did not fully consume those values.
+
+Implemented on `refactor/monolith-removal`:
+- `kleenest-map-preloader.js` is now explicitly the sole data/GPS owner; cache-first behavior is preserved and map media is loaded by the preloader.
+- `kleenest-maps-surface.js` now renders immediately from the shared cache, restores session center/zoom/filters, saves Leaflet `moveend`, saves category/amenity changes through `KleenestMapSession`, and no longer has its own geolocation fallback or `<20` refresh trigger.
+- `kleenest-map-discovery-bootstrap.js` is now a compatibility bridge that delegates to the preloader rather than performing independent Supabase/local discovery.
+- Cache version was intentionally advanced to `v19` to prevent stale pre-fix cache state from being mistaken for the repaired cache contract.
+
+## Verification still required
+1. Browser test cold launch with cached locations and confirm Maps paints before network discovery completes.
+2. Navigate Home → Maps → Home → Maps and confirm no second GPS permission/request and no duplicate discovery pipeline.
+3. Move/zoom the map, leave Maps, return, and confirm center/zoom restore.
+4. Change category/amenity, leave Maps, return, and confirm filters restore.
+5. Trigger background discovery and confirm existing pins remain while merged results arrive.
+6. Verify real uploaded featured photos render; mock `location_photos` rows without Storage objects are not sufficient.
+7. Verify Growth/Enterprise featured-photo selection after real uploads.
+
 ## Next work — do as many tasks per pass as possible
-1. Verify Maps navigation does not repeat GPS/loading when returning to the tab.
-2. Verify local cache appears immediately on a cold browser launch before network discovery finishes.
-3. Verify background refresh merges new OSM/Overpass and Supabase locations without clearing existing pins.
-4. Verify real uploaded location photos render correctly and the Growth/Enterprise featured-photo picker can select them.
-5. Connect the existing Business media upload UI to `location_photos` + `location-photos` Storage so businesses can upload/manage the photos they will choose as featured.
-6. Reconnect durable Social/Game points, contests and rewards.
-7. Verify Business/Admin rich mounts and datasets after identity hydration.
-8. Reconnect QR Studio + advanced CRUD with Growth+/owner/admin gating.
-9. Reconnect Photos/Media/VR, Partnerships, Campaigns, Promos/Offers, Events, Reviews/Replies and amenities.
-10. Apply the polished Maps button/chip language throughout the remaining modular surfaces.
-11. Never restore the monolithic renderer as the modular runtime.
+1. Complete the browser verification above.
+2. Verify real uploaded location photos render correctly and the Growth/Enterprise featured-photo picker can select them.
+3. Connect the existing Business media upload UI to `location_photos` + `location-photos` Storage so businesses can upload/manage the photos they will choose as featured.
+4. Reconnect durable Social/Game points, contests and rewards.
+5. Verify Business/Admin rich mounts and datasets after identity hydration.
+6. Reconnect QR Studio + advanced CRUD with Growth+/owner/admin gating.
+7. Reconnect Photos/Media/VR, Partnerships, Campaigns, Promos/Offers, Events, Reviews/Replies and amenities.
+8. Apply the polished Maps button/chip language throughout the remaining modular surfaces.
+9. Never restore the monolithic renderer as the modular runtime.
 
 ## Non-negotiable product rules
 - Branding: `Kleenest` only; never `KKleenest` or `Cleanest` in displayed app copy.
