@@ -11,55 +11,35 @@ A major cause of recent gaps was **not missing functionality**. Several features
 ## Latest Maps checkpoint
 Maps is the highest-priority product surface because discovery is the primary reason users open Kleenest.
 
-### Current required behavior
-- Ask for browser GPS automatically when Maps opens.
-- Warm GPS/location discovery at app startup instead of waiting for the Maps tab.
-- Center the map on the user's actual GPS position.
-- Show a distinct **You are here** marker and GPS accuracy circle.
-- Query Kleenest/Supabase locations around the actual GPS point.
-- Load the already-built external Overpass/OpenStreetMap discovery module and query it around the actual GPS point.
-- Merge Kleenest + external pins, deduplicate them, and render the same merged dataset in the list and map.
-- Cache the merged location dataset globally so navigation away from Maps does not discard it.
-- Cache the Overpass/external discovery response and Supabase nearby response so reopening Maps does not immediately repeat the network discovery work.
-- Keep All + every category filter working against that merged dataset.
-- Never use the six demo locations as the only map result when external discovery is available.
-- Selecting a marker or list item opens a rich location detail surface.
-- Details include type, distance, rating, review count, amenities, directions, favorite, check-in, review and amenity feedback entry points.
-- User location remains visible while browsing locations.
+### Persistent Maps architecture — latest
+The Maps data lifecycle is now **local-first and navigation-safe**.
 
-### Latest persistent Maps work
-`kleenest-map-preloader.js` commit `75f4b05d239c33093309a624ea23bae35af187bf` introduces `KleenestMapCache`. It warms GPS, existing Kleenest/Supabase locations and the existing Overpass/OpenStreetMap discovery module when the app starts. It merges/deduplicates the results, exposes them as `KleenestLocations`, and wraps the already-loaded discovery functions with cached responses for the current warm dataset.
+- `kleenest-map-preloader.js` uses `localStorage` key `kleenest.maps.cache.v6`.
+- Cached locations are hydrated immediately when the app/bootstrap starts.
+- Cached GPS position is hydrated immediately too.
+- A single `navigator.geolocation.watchPosition()` watcher is kept alive globally; Maps mounts do not request a new GPS fix just because the user changed tabs.
+- Cached data is shown immediately and refreshed in the background on a 15-minute freshness window.
+- Cached data remains usable for up to 7 days before being discarded as stale.
+- Supabase/Kleenest locations and OSM/Overpass locations are merged and deduplicated by name + coordinate.
+- The Maps surface consumes the global cache rather than rebuilding the dataset from scratch on every mount.
+- Maps filter state (`category` and `amenity`) is preserved in `window.KleenestMapsView` when navigating away and back.
+- `kleenest-modular-entry.js` is cache-busted to preload6/shell28.
 
-`kleenest-app-shell.js` commit `ee642040b16d6ea684e5ab958e8dbf8048232e7f` starts the map preloader immediately after the modular shell boots. Maps therefore has a warm dataset before the user selects Maps.
+### Expected behavior
+1. Open the app.
+2. GPS watcher starts once.
+3. Local Maps cache hydrates immediately if available.
+4. Supabase + OSM/Overpass refresh happens in the background.
+5. Open Maps: existing pins appear immediately.
+6. Navigate Home/Social/Profile/etc.
+7. Return to Maps: **no new GPS request and no empty/loading cycle**; cached pins appear immediately.
+8. Background refresh can add newer locations without clearing existing pins.
+9. Manual Refresh deliberately forces a new data refresh.
 
-The Maps UI uses the polished pill/chip/card visual language introduced in the recent Maps surface. That button treatment should be treated as the visual standard for the rest of the app: rounded controls, subtle gradients, clear active states, depth/hover feedback, and icon-supported actions.
-
-### Verification rule
-Do not claim Maps is fixed merely because commits succeeded. Verify the deployed app for:
-1. Startup begins location/discovery warming.
-2. GPS permission prompt appears appropriately.
-3. User marker and accuracy circle appear.
-4. Map opens with the previously warmed pins instead of an empty/demo-only state.
-5. External pins beyond the six demo businesses are present.
-6. All/category filters populated from the merged dataset.
-7. Amenity filters work against the same dataset.
-8. Marker/list synchronization.
-9. Location details, distance, rating/review count and amenities.
-10. Directions, Favorite, Check In, Leave Review and amenity Feedback entry points.
-11. Navigating Home/Social/Profile and returning to Maps does not require repeating the discovery network process.
-12. Existing shared controllers actually open the corresponding flows when present.
-
-If external pins still do not appear after the persistent preloader, inspect the Overpass response/error path and the deployed external-discovery script load. Do not rebuild the map renderer or change Supabase blindly.
-
-## Social/Games
-- `kleenest-social-game-surface.js` is the parent surface.
-- Games, Contests and Rewards have a visible **Back** button.
-- Historical `kleenest-engagement.js` is the durable service source and should be reconnected rather than replaced with local-only game state.
-
-## Business/Admin/Profile
-- Shell identity hydration uses Supabase session + profile + business memberships + subscription summary.
-- Account level and real membership/role determine Business/Admin visibility.
-- Business/Admin must mount existing modular workspace/data/state/analytics/QR/action/management modules.
+### Latest commits
+- Maps surface: `489c909e6f8072f65cf151f29042688c675e201d` — maps-surface-37.
+- Persistent preloader: `e16ac55f2029cc997dfb981e16a6fa22c4469f5f` — local-first cache v6.
+- Bootstrap: `32983cd8e2cdabb0b83e47043a85869e81ae4692` — preload6/shell28.
 
 ## Existing feature sources to keep migrating/reusing
 - `f219de80` — advanced QR + business CRUD controls
@@ -77,14 +57,13 @@ If external pins still do not appear after the persistent preloader, inspect the
 - `37a0b8a1` — QR/business advanced-control source
 
 ## Next work — do as many tasks per pass as possible
-1. Verify persistent Maps startup cache in the deployed app.
-2. Reconnect durable Social/Game points, contests and rewards.
-3. Verify Business/Admin rich mounts and datasets after identity hydration.
-4. Reconnect QR Studio + advanced CRUD with Growth+/owner/admin gating.
-5. Reconnect Photos/Media/VR, Partnerships, Campaigns, Promos/Offers, Events, Reviews/Replies and amenities.
-6. Keep datasets location-specific and calculation-specific.
-7. Apply the polished Maps button/control language consistently throughout the app.
-8. Never restore the monolithic renderer as the modular runtime.
+1. Verify deployed Maps: no repeated GPS request on tab return; cached pins immediately visible.
+2. Verify background OSM/Overpass + Supabase refresh merges without clearing existing results.
+3. Apply the polished Maps button/chip design system to shared modular buttons and navigation.
+4. Reconnect durable Social/Game points, contests and rewards.
+5. Verify Business/Admin rich mounts and datasets after identity hydration.
+6. Reconnect QR Studio + advanced CRUD with Growth+/owner/admin gating.
+7. Reconnect Photos/Media/VR, Partnerships, Campaigns, Promos/Offers, Events, Reviews/Replies and amenities.
 
 ## Non-negotiable product rules
 - Branding: `Kleenest` only; never `KKleenest` or `Cleanest` in displayed app copy.
