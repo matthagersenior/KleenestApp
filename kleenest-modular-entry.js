@@ -8,5 +8,5 @@
   .then(()=>load('kleenest-map-preloader.js?preload=11'))
   .then(()=>window.KleenestMapPreloader?.load?.())
   .catch(e=>console.warn('[Kleenest] Maps warmup deferred',e))
-  .finally(()=>load('kleenest-app-shell.js?modular=20260815-shell31').catch(e=>{console.error('[Kleenest] shell bootstrap failed',e);const root=document.getElementById('modular-root');if(root)root.innerHTML='<div class="card" style="border-color:#c1503f"><b>Kleenest could not initialize.</b><p>Please refresh and try again.</p></div>';}));
+  .finally(()=>load('kleenest-app-shell.js?modular=20260815-shell32').catch(e=>{console.error('[Kleenest] shell bootstrap failed',e);const root=document.getElementById('modular-root');if(root)root.innerHTML='<div class="card" style="border-color:#c1503f"><b>Kleenest could not initialize.</b><p>Please refresh and try again.</p></div>';}));
 })();
