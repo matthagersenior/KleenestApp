@@ -32,12 +32,14 @@ The discovery catalog intentionally includes gas stations/travel stops, restaura
 ## Gamification/data collection
 Bathroom verification is an auditable community signal. A user can contribute a verification vote, earn verification points once per user/location, and the location's aggregate bathroom status updates from that signal. Check-ins, visits, favorites, reviews, and other engagement remain part of the existing points/badges/social system.
 
-## Latest commits
-- `6bf80fcf91822f6b4ad54b55d688d6297c9b34bb` — Maps preloader v23: separate candidate cache, bathroom verification display gate, shared GPS update/refresh.
-- `e915b55c7ce8686562b8717e2882a151db906948` — Maps control policy: replace manual Use My Location + Refresh controls with one Update my location action.
-- `f56d15c4cddad88f20b46ced5900e98ce8c5ab9d` — modular entry loads the Maps control policy and cache/preloader v23.
-- Supabase migration `maps_catalog_verification_gate` — source provenance indexes and catalog lookup indexes.
-- Supabase Edge Function `ingest-map-candidates` v1 — authenticated OSM/Overpass candidate ingestion.
+## Latest lockup diagnosis — 2026-08-15
+The Maps control module contained a `MutationObserver` watching the entire document and a callback that unconditionally changed the Maps button's `textContent`. Changing `textContent` itself produces a `childList` mutation, which retriggered the observer indefinitely. This created a main-thread microtask loop and explains the persistent app-wide unresponsiveness when the Maps controls were mounted.
+
+Fixed in commit `d8e236da693b61e9a7c64495e68a03e9aa1c8eea`:
+- DOM control patching is now guarded against re-entry.
+- Text/ARIA changes only occur when the value actually differs.
+- The observer is started safely after DOM readiness.
+- The refresh button is still removed and `Update my location` remains the single manual action.
 
 ## Design rule
 Do not move GPS/discovery back into the Maps renderer. The preloader is the single owner of warm location data and GPS lifecycle. Do not expose an unverified candidate as a confirmed bathroom destination.
