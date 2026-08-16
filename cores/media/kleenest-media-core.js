@@ -1,8 +1,7 @@
 /**
  * Kleenest Media Core
  * Canonical media contract for all modular app cores.
- *
- * Consumers must use this core instead of calling Supabase Storage directly.
+ * Consumers use this core instead of calling Supabase Storage directly.
  */
 
 const DEFAULT_LIMITS = Object.freeze({
@@ -10,7 +9,7 @@ const DEFAULT_LIMITS = Object.freeze({
   video: Object.freeze({ maxBytes: 100 * 1024 * 1024, types: Object.freeze(['video/mp4', 'video/webm', 'video/quicktime']) })
 });
 
-export function createMediaCore({ supabase, bucket = 'kleenest-media', limits = DEFAULT_LIMITS } = {}) {
+export function createMediaCore({ supabase, bucket = 'social-media', limits = DEFAULT_LIMITS } = {}) {
   if (!supabase) throw new Error('Media Core requires an authenticated Supabase client.');
 
   const normalize = (file) => {
@@ -32,7 +31,8 @@ export function createMediaCore({ supabase, bucket = 'kleenest-media', limits = 
     const info = normalize(file);
     const original = safeName(file.name || 'media');
     const extension = original.includes('.') ? original.split('.').pop() : info.type.split('/')[1];
-    const path = `${namespace}/${userId}/${pathPrefix ? `${pathPrefix}/` : ''}${crypto.randomUUID()}.${extension}`;
+    // Storage RLS requires the first folder segment to be auth.uid().
+    const path = `${userId}/${namespace}/${pathPrefix ? `${pathPrefix}/` : ''}${crypto.randomUUID()}.${extension}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       contentType: info.type,
       upsert: false,
@@ -53,7 +53,7 @@ export function createMediaCore({ supabase, bucket = 'kleenest-media', limits = 
 
   async function remove(storagePath, { userId, namespace = 'social' } = {}) {
     if (!userId || !storagePath) throw new Error('Authenticated user and storage path are required.');
-    const prefix = `${namespace}/${userId}/`;
+    const prefix = `${userId}/${namespace}/`;
     if (!storagePath.startsWith(prefix)) throw new Error('Media ownership check failed.');
     const { error } = await supabase.storage.from(bucket).remove([storagePath]);
     if (error) throw error;
@@ -64,6 +64,6 @@ export function createMediaCore({ supabase, bucket = 'kleenest-media', limits = 
 
 export const mediaCoreContract = Object.freeze({
   version: 1,
-  bucket: 'kleenest-media',
+  bucket: 'social-media',
   consumers: Object.freeze(['social', 'profile', 'business', 'qr-studio'])
 });
