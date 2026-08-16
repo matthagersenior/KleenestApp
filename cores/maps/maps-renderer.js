@@ -1,3 +1,37 @@
-/* Kleenest Maps Renderer: Leaflet map + explicit map controls + location/route affordances. */
-export function createMapsRenderer({provider=null}={}){let mountRoot=null,map=null,markerLayer=null,lastContext=null;function coords(x){const lat=Number(x.latitude??x.lat),lng=Number(x.longitude??x.lng);return Number.isFinite(lat)&&Number.isFinite(lng)?[lat,lng]:null}function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function paintLocations(locations=[],context){if(!map||!markerLayer)return;markerLayer.clearLayers();const valid=locations.map(x=>({x,c:coords(x)})).filter(v=>v.c);valid.forEach(({x,c})=>{const marker=L.marker(c).addTo(markerLayer),title=x.name||x.title||'Kleenest location';marker.bindPopup(`<strong>${escapeHtml(title)}</strong><br><span>${escapeHtml(x.address||'Community location')}</span><br><button type="button" data-map-location="${escapeHtml(String(x.id))}">View details</button><button type="button" data-map-route="${escapeHtml(String(x.id))}">Add to route</button>`);marker.on('popupopen',()=>{const el=marker.getPopup().getElement();el?.querySelector('[data-map-location]')?.addEventListener('click',()=>context.core.selectLocation(x.id).catch(console.error));el?.querySelector('[data-map-route]')?.addEventListener('click',()=>context.modules?.routes?.addLocation?.(x.id).catch(console.error))});});if(valid.length){const bounds=L.latLngBounds(valid.map(v=>v.c));map.fitBounds(bounds,{padding:[24,24],maxZoom:15})}if(mountRoot)mountRoot.querySelector('[data-map-count]').textContent=`${valid.length} locations found`}
-async function mount(root,context){mountRoot=root;lastContext=context;if(provider?.mount)return provider.mount(root,context);root.innerHTML='<div class="maps-renderer"><div class="maps-renderer__toolbar"><strong>Nearby clean places</strong><span data-map-count>Loading…</span><div class="maps-renderer__controls"><button type="button" data-map-control="locate">Locate me</button><button type="button" data-map-control="route">Route</button></div></div><div class="maps-renderer__map" data-map-canvas></div></div>';if(typeof L==='undefined'){root.querySelector('[data-map-canvas]').innerHTML='<div class="maps-renderer__notice">Map provider is unavailable. Location discovery can still continue.</div>';return}map=L.map(root.querySelector('[data-map-canvas]'),{zoomControl:true}).setView([38.5,-89.9],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);markerLayer=L.layerGroup().addTo(map);root.querySelector('[data-map-control="locate"]').onclick=async()=>{await context.modules.location.request();await refresh(context)};root.querySelector('[data-map-control="route"]').onclick=()=>context.core.openRoute?.();await refresh(context)}async function refresh(context){lastContext=context;const locations=await context.core.refreshDiscovery?.()||context.state.locations||[];context.state.locations=locations;if(map)paintLocations(locations,context);return locations}function destroy(){provider?.destroy?.();if(map){map.remove();map=null}markerLayer=null;mountRoot=null;lastContext=null}return Object.freeze({mount,refresh,destroy})}
+/* Kleenest Maps Renderer — feature-rich map surface, provider isolated behind an explicit contract. */
+export function createMapsRenderer({provider=null}={}){
+ let mountRoot=null,map=null,markerLayer=null,userMarker=null,lastContext=null;
+ const coords=x=>{const lat=Number(x.latitude??x.lat),lng=Number(x.longitude??x.lng);return Number.isFinite(lat)&&Number.isFinite(lng)?[lat,lng]:null};
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const badge=x=>x.bathroom_verification_status==='has_bathroom'?'<span class="maps-badge maps-badge--verified">Verified bathroom</span>':'<span class="maps-badge">Needs verification</span>';
+ function paintLocations(locations=[],context){
+  if(!map||!markerLayer)return;
+  markerLayer.clearLayers();
+  const valid=locations.map(x=>({x,c:coords(x)})).filter(v=>v.c);
+  valid.forEach(({x,c})=>{
+   const marker=L.marker(c).addTo(markerLayer),title=x.name||x.title||'Kleenest location';
+   marker.bindPopup(`<div class="maps-popup"><strong>${esc(title)}</strong>${badge(x)}<span>${esc(x.address||[x.city,x.state].filter(Boolean).join(', ')||'Community location')}</span><div class="maps-popup__actions"><button type="button" data-map-location="${esc(String(x.id))}">Details</button><button type="button" data-map-route="${esc(String(x.id))}">Add to route</button></div></div>`);
+   marker.on('popupopen',()=>{const el=marker.getPopup().getElement();el?.querySelector('[data-map-location]')?.addEventListener('click',()=>context.core.selectLocation(x.id).catch(console.error));el?.querySelector('[data-map-route]')?.addEventListener('click',()=>context.modules.routes?.addLocation?.(x.id).then(()=>context.core.openRoute()).catch(console.error));});
+  });
+  const count=mountRoot?.querySelector('[data-map-count]');if(count)count.textContent=`${valid.length} verified/community locations`;
+  const list=mountRoot?.querySelector('[data-map-list]');
+  if(list)list.innerHTML=valid.length?valid.slice(0,20).map(({x})=>`<button class="maps-location-row" type="button" data-map-row="${esc(String(x.id))}"><span><strong>${esc(x.name||'Kleenest location')}</strong><small>${esc(x.address||x.place_type||'Nearby')}</small></span>${badge(x)}</button>`).join(''):'<div class="maps-empty">No locations matched these filters.</div>';
+  list?.querySelectorAll('[data-map-row]').forEach(b=>b.onclick=()=>context.core.selectLocation(b.dataset.mapRow).catch(console.error));
+  if(valid.length){const bounds=L.latLngBounds(valid.map(v=>v.c));map.fitBounds(bounds,{padding:[28,28],maxZoom:15})}
+ }
+ async function mount(root,context){
+  mountRoot=root;lastContext=context;
+  if(provider?.mount)return provider.mount(root,context);
+  root.innerHTML=`<div class="maps-renderer"><div class="maps-renderer__toolbar"><div><strong>Nearby clean places</strong><span data-map-count>Searching…</span></div><div class="maps-renderer__controls"><button type="button" data-map-control="locate">Locate me</button><button type="button" data-map-control="route">Route</button></div></div><div class="maps-renderer__layout"><div class="maps-renderer__map" data-map-canvas></div><aside class="maps-renderer__list"><div class="maps-list-heading"><strong>Nearby</strong><span>Verified locations first</span></div><div data-map-list></div></aside></div></div>`;
+  if(typeof L==='undefined'){root.querySelector('[data-map-canvas]').innerHTML='<div class="maps-renderer__notice"><strong>Map provider unavailable</strong><span>Location discovery remains available while the map provider initializes.</span></div>';return}
+  map=L.map(root.querySelector('[data-map-canvas]'),{zoomControl:true,preferCanvas:true}).setView([38.5,-89.9],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  markerLayer=L.layerGroup().addTo(map);
+  root.querySelector('[data-map-control="locate"]').onclick=async()=>{try{const p=await context.modules.location.request();const c=coords({latitude:p?.coords?.latitude,longitude:p?.coords?.longitude});if(c){if(userMarker)userMarker.remove();userMarker=L.circleMarker(c,{radius:8}).addTo(map).bindTooltip('You are here');map.setView(c,14)}await refresh(context)}catch(e){console.warn('[Maps] locate',e)}};
+  root.querySelector('[data-map-control="route"]').onclick=()=>context.core.openRoute?.();
+  await refresh(context);
+ }
+ async function refresh(context){lastContext=context;const locations=await context.core.refreshDiscovery?.()||context.state.locations||[];context.state.locations=locations;paintLocations(locations,context);return locations}
+ function destroy(){provider?.destroy?.();if(map){map.remove();map=null}markerLayer=null;userMarker=null;mountRoot=null;lastContext=null}
+ return Object.freeze({mount,refresh,destroy});
+}
