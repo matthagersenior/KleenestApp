@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#0E7C6B">
 <title>Kleenest — Find the cleanest restroom nearby</title>
-<style>
-:root{--ink:#16211D;--ink-soft:#5B6D66;--porcelain:#F6F9F7;--surface:#FFF;--teal:#0E7C6B;--teal-deep:#0A5C4F;--tile-line:#D8DFDC}
-*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--porcelain);color:var(--ink);-webkit-font-smoothing:antialiased}button{font:inherit;cursor:pointer}.card{background:var(--surface);border:1px solid var(--tile-line);border-radius:16px;padding:18px}.stack{display:flex;flex-direction:column;gap:18px}.muted{color:var(--ink-soft)}#modular-root{min-height:100vh}
-</style>
+<style>:root{--ink:#16211D;--ink-soft:#5B6D66;--porcelain:#F6F9F7;--surface:#FFF;--teal:#0E7C6B;--tile-line:#D8DFDC}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--porcelain);color:var(--ink)}button{font:inherit;cursor:pointer}.card{background:var(--surface);border:1px solid var(--tile-line);border-radius:16px;padding:18px}.muted{color:var(--ink-soft)}#modular-root{min-height:100vh}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
 <script src="kleenest-supabase-runtime.js"></script>
@@ -24,6 +21,14 @@
 </head>
 <body>
 <div id="modular-root"><section class="card"><h1>Kleenest</h1><p class="muted">Starting modular app…</p></section></div>
-<script src="kleenest-modular-entry-v31.js?entry=modular-v37-20260816" defer></script>
+<script>
+(function(){
+  var root=document.getElementById('modular-root');
+  function boot(src){return new Promise(function(resolve,reject){var s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=function(){reject(new Error('Unable to load '+src))};document.head.appendChild(s)})}
+  boot('kleenest-app-shell-v63.js?shell=67-'+Date.now()).catch(function(e){console.error('[Kleenest] shell bootstrap failed',e);root.innerHTML='<section class="card"><h1>Kleenest</h1><p class="muted">The app shell could not initialize.</p><button id="retry">Retry</button><p class="muted" style="font-size:.8rem">'+String(e.message||e).replace(/[<>]/g,'')+'</p></section>';document.getElementById('retry').onclick=function(){location.reload()}});
+  boot('kleenest-map-engine-bootstrap.js?maps-engine=5-'+Date.now()).catch(function(e){console.warn('[Kleenest] optional Maps engine unavailable',e)});
+  boot('kleenest-map-preloader.js?preload=39-'+Date.now()).catch(function(e){console.warn('[Kleenest] optional Maps preload unavailable',e)});
+})();
+</script>
 </body>
 </html>
