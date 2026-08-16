@@ -1,3 +1,5 @@
+import { ensureSocialStyles } from './social-theme.js';
+
 /**
  * Kleenest Social Core
  * Canonical coordinator for the Social module.
@@ -5,6 +7,7 @@
 export function createSocialCore({ supabase, mediaCore, root, user = null } = {}) {
   if (!supabase) throw new Error('Social Core requires Supabase.');
   if (!root) throw new Error('Social Core requires a mount root.');
+  ensureSocialStyles();
   const state = { user, view: 'feed', channels: [], destroyed: false };
   const requireUser = () => { if (!state.user) throw new Error('Sign in required.'); return state.user; };
   const query = table => supabase.from(table);
@@ -82,5 +85,6 @@ export function createSocialCore({ supabase, mediaCore, root, user = null } = {}
   function escapeHtml(value) { return String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;' }[char])); }
   const escapeAttribute = escapeHtml;
   function destroy() { state.destroyed = true; state.channels.forEach(channel => { try { supabase.removeChannel(channel); } catch (_) {} }); state.channels.length = 0; root.replaceChildren(); }
+  subscribe();
   return Object.freeze({ render, destroy, getPosts, createPost, deletePost, requireUser, get state() { return { ...state }; } });
 }
