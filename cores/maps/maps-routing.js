@@ -1,0 +1,8 @@
+/* Maps Routing Provider: isolated cross-network routing request. */
+export function createMapsRouting({endpoint='https://router.project-osrm.org/route/v1/driving'}={}){
+ const point=p=>{const lat=Number(p?.latitude??p?.lat),lng=Number(p?.longitude??p?.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))throw new Error('Route points require valid coordinates.');return `${lng},${lat}`};
+ async function request(points){const url=`${endpoint}/${points.map(point).join(';')}?overview=full&geometries=geojson&steps=true`;const response=await fetch(url,{headers:{Accept:'application/json'}});if(!response.ok)throw new Error(`Routing request failed (${response.status}).`);const json=await response.json();if(json.code!=='Ok'||!json.routes?.[0])throw new Error('No drivable route was found.');const r=json.routes[0];return {distanceMeters:r.distance,durationSeconds:r.duration,geometry:r.geometry,steps:r.legs?.flatMap(l=>l.steps||[])||[],raw:r};}
+ async function preview(points){return request(points)}
+ async function optimize({origin=null,destination=null,stops=[]}){if(stops.length<3)return stops;const base=origin?[origin,...stops,destination].filter(Boolean):stops;const result=await request(base);return stops.slice().sort((a,b)=>{const da=Math.hypot(Number(a.latitude)-Number(base[0].latitude),Number(a.longitude)-Number(base[0].longitude));const db=Math.hypot(Number(b.latitude)-Number(base[0].latitude),Number(b.longitude)-Number(base[0].longitude));return da-db})}
+ return Object.freeze({preview,optimize});
+}
