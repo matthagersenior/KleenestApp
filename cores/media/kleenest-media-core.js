@@ -5,8 +5,7 @@
  */
 
 const DEFAULT_LIMITS = Object.freeze({
-  image: Object.freeze({ maxBytes: 10 * 1024 * 1024, types: Object.freeze(['image/jpeg', 'image/png', 'image/webp', 'image/gif']) }),
-  video: Object.freeze({ maxBytes: 100 * 1024 * 1024, types: Object.freeze(['video/mp4', 'video/webm', 'video/quicktime']) })
+  image: Object.freeze({ maxBytes: 10 * 1024 * 1024, types: Object.freeze(['image/jpeg', 'image/png', 'image/webp']) })
 });
 
 export function createMediaCore({ supabase, bucket = 'social-media', limits = DEFAULT_LIMITS } = {}) {
@@ -15,8 +14,8 @@ export function createMediaCore({ supabase, bucket = 'social-media', limits = DE
   const normalize = (file) => {
     if (!file || typeof file !== 'object') throw new Error('A media file is required.');
     const type = String(file.type || '').toLowerCase();
-    const kind = type.startsWith('video/') ? 'video' : type.startsWith('image/') ? 'image' : null;
-    if (!kind) throw new Error('Unsupported media type.');
+    const kind = type.startsWith('image/') ? 'image' : null;
+    if (!kind) throw new Error('This Media Core storage contract currently supports images only.');
     const rule = limits[kind];
     if (!rule || !rule.types.includes(type)) throw new Error(`Unsupported ${kind} format.`);
     const size = Number(file.size || 0);
@@ -65,5 +64,6 @@ export function createMediaCore({ supabase, bucket = 'social-media', limits = DE
 export const mediaCoreContract = Object.freeze({
   version: 1,
   bucket: 'social-media',
+  capabilities: Object.freeze({ images: true, video: false }),
   consumers: Object.freeze(['social', 'profile', 'business', 'qr-studio'])
 });
