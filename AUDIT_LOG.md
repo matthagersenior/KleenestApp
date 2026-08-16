@@ -67,6 +67,37 @@ For every audit pass record:
 - Confirmed `club_memberships`, `point_transactions`, `user_badges`, `progression_actions`, and `preferred_location_activations` require authority/consumer review before UI creation.
 - No speculative UI was added for these datasets.
 
+## 2026-08-16 — Reward integrity and authorization hardening
+
+- Consolidated duplicate check-in, review, and bathroom-verification point awards under the canonical gamification authority.
+- Gated review/social-post rewards on publication state.
+- Prevented cross-user gamification attribution.
+- Locked down zero-policy sensitive tables with owner/admin-scoped RLS.
+- Restricted demo identity registry to admins.
+- Removed hardcoded administrator-email authorization from amenity mutations.
+- Removed client execution of internal reward/analytics/maintenance SECURITY DEFINER RPCs.
+- Restricted anonymous access to user reward history and legacy business metric/review RPCs.
+
+## 2026-08-16 — Business feature permission matrix
+
+- Normalized advanced-tier authorization across campaigns, events, contests, promotions, and QR CRUD.
+- Standard-tier businesses remain limited to basic capabilities.
+- Hardened contest entries and promotion redemptions against inactive/expired records.
+- Hardened event RSVP creation against invalid event status.
+- Removed duplicate favorites RLS policy.
+
+## 2026-08-16 — Progression feature-gap closure
+
+- Hardened progression metric event writes against client-supplied system events.
+- Added the real progression challenge completion authority:
+  - validates authentication, enabled challenge, membership, and target
+  - marks completion once
+  - awards the configured challenge reward through the canonical gamification/point path
+  - remains idempotent on repeated completion attempts
+- Added `cores/progression/progression-challenges-core.js` with real Supabase-backed challenge loading/join/completion behavior.
+- Added `kleenest-progression-challenges-bridge.js` and loaded it from the modular bootstrap so the Social → Compete surface now consumes the production challenge dataset rather than merely listing it.
+- Added app-wide styling for the challenge cards using the existing Kleenest visual language.
+
 ## Current active audit track
 
 **Progression/Rewards authority chain:**
