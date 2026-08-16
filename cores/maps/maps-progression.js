@@ -1,0 +1,2 @@
+/* Maps Progression Module: single scoring boundary. */
+export function createMapsProgression({ progressionCore=null }={}) { async function record(event){if(!event?.metric)throw new Error('Maps progression metric is required.');if(typeof progressionCore?.record==='function')return progressionCore.record(event);return null} return Object.freeze({record}); }
