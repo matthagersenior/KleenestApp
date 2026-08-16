@@ -1,93 +1,18 @@
-/* Kleenest Maps Route Module
- * First-class route capability inside Maps Core. No standalone route surface.
- * Cross-core contract: route activity emits canonical progression metrics through the injected progression module.
- */
-
-const ROUTE_STATUSES = Object.freeze({ DRAFT:'draft', ACTIVE:'active', COMPLETED:'completed', CANCELLED:'cancelled' });
-const METRICS = Object.freeze({ START:'route_started', STOP:'route_stop_completed', COMPLETE:'route_completed', SHARE:'route_shared' });
-
-export function createMapsRoutes({ supabase, progression = null, social = null, user = null } = {}) {
-  let activeRoute = null;
-  let destroyed = false;
-
-  function requireUser() {
-    if (!user?.id) throw new Error('Authentication is required for route actions.');
-  }
-  function emit(metric, payload = {}) {
-    return progression?.record?.({ metric, source_type:'route', source_id: activeRoute?.id ?? null, payload }) ?? null;
-  }
-  async function create({ title = 'My Kleenest Route', stops = [], distance_m = null, duration_s = null } = {}) {
-    requireUser();
-    const { data, error } = await supabase.from('route_plans').insert({
-      user_id:user.id, title, status:ROUTE_STATUSES.DRAFT, distance_m, duration_s
-    }).select('*').single();
-    if (error) throw error;
-    activeRoute = data;
-    if (stops.length) await setStops(stops);
-    return activeRoute;
-  }
-  async function setStops(stops = []) {
-    requireUser();
-    if (!activeRoute?.id) throw new Error('Create a route before adding stops.');
-    const rows = stops.map((stop, index) => ({
-      route_id:activeRoute.id, location_id:stop.location_id ?? stop.id, stop_order:index,
-      point_value:stop.point_value ?? 0, status:'pending'
-    }));
-    const { error:deleteError } = await supabase.from('route_stops').delete().eq('route_id', activeRoute.id);
-    if (deleteError) throw deleteError;
-    if (!rows.length) return [];
-    const { data, error } = await supabase.from('route_stops').insert(rows).select('*').order('stop_order');
-    if (error) throw error;
-    return data;
-  }
-  async function start() {
-    requireUser();
-    if (!activeRoute?.id) throw new Error('No route selected.');
-    const { data, error } = await supabase.from('route_plans').update({ status:ROUTE_STATUSES.ACTIVE, started_at:new Date().toISOString() }).eq('id',activeRoute.id).eq('user_id',user.id).select('*').single();
-    if (error) throw error;
-    activeRoute = data; await emit(METRICS.START); return data;
-  }
-  async function completeStop(stopId, payload = {}) {
-    requireUser();
-    if (!activeRoute?.id) throw new Error('No active route.');
-    const { data, error } = await supabase.from('route_stops').update({ status:'completed', completed_at:new Date().toISOString() }).eq('id',stopId).eq('route_id',activeRoute.id).select('*').single();
-    if (error) throw error;
-    await supabase.from('route_events').insert({ route_id:activeRoute.id, user_id:user.id, event_type:'stop_completed', payload });
-    await emit(METRICS.STOP,{ stop_id:stopId, point_value:data.point_value ?? 0 });
-    return data;
-  }
-  async function complete() {
-    requireUser();
-    if (!activeRoute?.id) throw new Error('No active route.');
-    const { data, error } = await supabase.from('route_plans').update({ status:ROUTE_STATUSES.COMPLETED, completed_at:new Date().toISOString() }).eq('id',activeRoute.id).eq('user_id',user.id).select('*').single();
-    if (error) throw error;
-    activeRoute = data;
-    await supabase.from('route_events').insert({ route_id:data.id, user_id:user.id, event_type:'route_completed', payload:{} });
-    await emit(METRICS.COMPLETE); return data;
-  }
-  async function cancel() {
-    requireUser();
-    if (!activeRoute?.id) return null;
-    const { data, error } = await supabase.from('route_plans').update({ status:ROUTE_STATUSES.CANCELLED }).eq('id',activeRoute.id).eq('user_id',user.id).select('*').single();
-    if (error) throw error;
-    activeRoute = data; return data;
-  }
-  async function share(payload = {}) {
-    requireUser();
-    if (!activeRoute?.id) throw new Error('No route selected.');
-    await supabase.from('route_events').insert({ route_id:activeRoute.id, user_id:user.id, event_type:'route_shared', payload });
-    await emit(METRICS.SHARE,payload);
-    return social?.shareRoute?.(activeRoute,payload) ?? { route:activeRoute, shared:true };
-  }
-  async function listMine({ status = null } = {}) {
-    requireUser();
-    let query = supabase.from('route_plans').select('*, route_stops(*)').eq('user_id',user.id).order('created_at',{ascending:false});
-    if (status) query = query.eq('status',status);
-    const { data,error } = await query;
-    if (error) throw error;
-    return data ?? [];
-  }
-  function getActive() { return activeRoute; }
-  function destroy() { destroyed = true; activeRoute = null; }
-  return Object.freeze({ ROUTE_STATUSES, METRICS, create, setStops, start, completeStop, complete, cancel, share, listMine, getActive, destroy, get destroyed(){return destroyed;} });
+/* Maps Route Core: first-class route capability inside Maps. */
+const ROUTE_STATUSES=Object.freeze({DRAFT:'draft',ACTIVE:'active',COMPLETED:'completed',CANCELLED:'cancelled'});
+const METRICS=Object.freeze({START:'route_started',STOP:'route_stop_completed',COMPLETE:'route_completed',SHARE:'route_shared'});
+export function createMapsRoutes({supabase,progression=null,social=null,user=null}={}){
+ let activeRoute=null,destroyed=false,selectedStops=[];
+ const auth=()=>{if(!user?.id)throw new Error('Authentication is required for route actions.')};
+ const emit=(metric,payload={})=>progression?.record?.({metric,source_type:'route',source_id:activeRoute?.id??null,payload});
+ async function create({title='My Kleenest Route',stops=[],distance_m=null,duration_s=null}={}){auth();const {data,error}=await supabase.from('route_plans').insert({user_id:user.id,title,status:ROUTE_STATUSES.DRAFT,distance_m,duration_s}).select('*').single();if(error)throw error;activeRoute=data;selectedStops=[];if(stops.length)await setStops(stops);return activeRoute}
+ async function addLocation(locationId,meta={}){auth();if(!activeRoute)await create();if(selectedStops.some(x=>String(x.location_id)===String(locationId)))return selectedStops;selectedStops.push({location_id:locationId,...meta});await setStops(selectedStops);return selectedStops}
+ async function setStops(stops=[]){auth();if(!activeRoute?.id)throw new Error('Create a route before adding stops.');const rows=stops.map((stop,index)=>({route_id:activeRoute.id,location_id:stop.location_id??stop.id,stop_order:index,point_value:stop.point_value??0,status:'pending'}));const del=await supabase.from('route_stops').delete().eq('route_id',activeRoute.id);if(del.error)throw del.error;if(!rows.length){selectedStops=[];return []}const {data,error}=await supabase.from('route_stops').insert(rows).select('*').order('stop_order');if(error)throw error;selectedStops=data;return data}
+ async function start(){auth();if(!activeRoute?.id)throw new Error('No route selected.');const {data,error}=await supabase.from('route_plans').update({status:ROUTE_STATUSES.ACTIVE,started_at:new Date().toISOString()}).eq('id',activeRoute.id).eq('user_id',user.id).select('*').single();if(error)throw error;activeRoute=data;await supabase.from('route_events').insert({route_id:data.id,user_id:user.id,event_type:'started',payload:{}});await emit(METRICS.START);return data}
+ async function completeStop(stopId,payload={}){auth();if(!activeRoute?.id)throw new Error('No active route.');const {data,error}=await supabase.from('route_stops').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',stopId).eq('route_id',activeRoute.id).select('*').single();if(error)throw error;const ev=await supabase.from('route_events').insert({route_id:activeRoute.id,user_id:user.id,event_type:'stop_completed',payload});if(ev.error)throw ev.error;await emit(METRICS.STOP,{stop_id:stopId,point_value:data.point_value??0});return data}
+ async function complete(){auth();if(!activeRoute?.id)throw new Error('No active route.');const {data,error}=await supabase.from('route_plans').update({status:ROUTE_STATUSES.COMPLETED,completed_at:new Date().toISOString()}).eq('id',activeRoute.id).eq('user_id',user.id).select('*').single();if(error)throw error;activeRoute=data;const ev=await supabase.from('route_events').insert({route_id:data.id,user_id:user.id,event_type:'route_completed',payload:{}});if(ev.error)throw ev.error;await emit(METRICS.COMPLETE);return data}
+ async function cancel(){auth();if(!activeRoute?.id)return null;const {data,error}=await supabase.from('route_plans').update({status:ROUTE_STATUSES.CANCELLED}).eq('id',activeRoute.id).eq('user_id',user.id).select('*').single();if(error)throw error;activeRoute=data;return data}
+ async function share(payload={}){auth();if(!activeRoute?.id)throw new Error('No route selected.');const ev=await supabase.from('route_events').insert({route_id:activeRoute.id,user_id:user.id,event_type:'route_shared',payload});if(ev.error)throw ev.error;await emit(METRICS.SHARE,payload);return social?.shareRoute?.(activeRoute,payload)??{route:activeRoute,shared:true}}
+ async function listMine({status=null}={}){auth();let q=supabase.from('route_plans').select('*, route_stops(*)').eq('user_id',user.id).order('created_at',{ascending:false});if(status)q=q.eq('status',status);const {data,error}=await q;if(error)throw error;return data??[]}
+ return Object.freeze({ROUTE_STATUSES,METRICS,create,addLocation,setStops,start,completeStop,complete,cancel,share,listMine,getActive:()=>activeRoute,getStops:()=>selectedStops.slice(),destroy:()=>{destroyed=true;activeRoute=null;selectedStops=[]},get destroyed(){return destroyed}})
 }
