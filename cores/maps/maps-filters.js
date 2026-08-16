@@ -1,0 +1,2 @@
+/* Maps Filters Module */
+export function createMapsFilters(){let current={};function apply(filters={}){current={...filters};return current}function get(){return {...current}}return Object.freeze({apply,get})}
