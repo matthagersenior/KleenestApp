@@ -35,6 +35,10 @@ jobs:
               '<script src="kleenest-business.js"></script>',
               '<script src="kleenest-business-management.js"></script>',
               '<script src="kleenest-ui-integration.js"></script>',
+              '<script src="kleenest-design-system-v1.js"></script>',
+              '<script src="kleenest-platform-admin-core-v3.js"></script>',
+              '<script src="kleenest-admin-v3-alias.js"></script>',
+              '<script src="kleenest-admin-v3-hotfix.js"></script>',
           ]
           missing = [s for s in scripts if s not in text]
           if not missing:
@@ -51,7 +55,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in supabase-client.js kleenest-supabase-runtime.js kleenest-actions.js kleenest-rewards.js kleenest-rewards-history.js kleenest-reviews.js kleenest-promotions.js kleenest-account.js kleenest-business.js kleenest-business-management.js kleenest-ui-integration.js; do
+          for f in supabase-client.js kleenest-supabase-runtime.js kleenest-actions.js kleenest-rewards.js kleenest-rewards-history.js kleenest-reviews.js kleenest-promotions.js kleenest-account.js kleenest-business.js kleenest-business-management.js kleenest-ui-integration.js kleenest-design-system-v1.js kleenest-platform-admin-core-v3.js kleenest-admin-v3-alias.js kleenest-admin-v3-hotfix.js; do
             test -s "$f"
             node --check "$f"
           done
@@ -65,12 +69,14 @@ jobs:
               'supabase-client.js', 'kleenest-supabase-runtime.js', 'kleenest-actions.js',
               'kleenest-rewards.js', 'kleenest-rewards-history.js', 'kleenest-reviews.js',
               'kleenest-promotions.js', 'kleenest-account.js', 'kleenest-business.js',
-              'kleenest-business-management.js', 'kleenest-ui-integration.js'
+              'kleenest-business-management.js', 'kleenest-ui-integration.js',
+              'kleenest-design-system-v1.js', 'kleenest-platform-admin-core-v3.js',
+              'kleenest-admin-v3-alias.js', 'kleenest-admin-v3-hotfix.js'
           ]
           missing = [name for name in required if f'src="{name}"' not in text]
           if missing:
               raise SystemExit('Missing frontend scripts: ' + ', '.join(missing))
-          print('All Supabase feature and UI integration scripts are wired into index.html.')
+          print('All Supabase feature, design-system, and Admin integration scripts are wired into index.html.')
 
       - name: Commit and push integration
         shell: bash
