@@ -1,20 +1,22 @@
 const METRICS = Object.freeze({
   social_post: { sourceType: 'social_post', label: 'Posts', defaultPoints: 10 },
   social_comment: { sourceType: 'social_comment', label: 'Helpful comments', defaultPoints: 3 },
-  social_like: { sourceType: 'social_like', label: 'Reactions', defaultPoints: 1 },
+  social_like: { sourceType: 'social_like', label: 'Reactions', defaultPoints: 2 },
   social_save: { sourceType: 'social_save', label: 'Saves', defaultPoints: 2 },
-  social_follow: { sourceType: 'social_follow', label: 'Community connections', defaultPoints: 5 },
-  contest_entry: { sourceType: 'contest', label: 'Contest entries', defaultPoints: 15 },
+  social_follow: { sourceType: 'social_follow', label: 'Community connections', defaultPoints: 3 },
+  contest_entry: { sourceType: 'contest', label: 'Contest entries', defaultPoints: 10 },
+  contest_win: { sourceType: 'contest', label: 'Contest wins', defaultPoints: 100 },
   game_play: { sourceType: 'game', label: 'Games played', defaultPoints: 10 },
   challenge_progress: { sourceType: 'challenge', label: 'Challenge progress', defaultPoints: 5 },
-  event_rsvp: { sourceType: 'event', label: 'Event participation', defaultPoints: 10 },
+  event_rsvp: { sourceType: 'event', label: 'Event RSVPs', defaultPoints: 5 },
+  event_attend: { sourceType: 'event', label: 'Event attendance', defaultPoints: 20 },
   check_in: { sourceType: 'check_in', label: 'Check-ins', defaultPoints: 10 },
   review: { sourceType: 'review', label: 'Reviews', defaultPoints: 20 },
-  verification: { sourceType: 'verification', label: 'Location verification', defaultPoints: 25 },
-  route: { sourceType: 'route', label: 'Routes completed', defaultPoints: 15 },
+  verification: { sourceType: 'verification', label: 'Location verification', defaultPoints: 15 },
+  route_complete: { sourceType: 'route', label: 'Routes completed', defaultPoints: 25 },
   campaign_engagement: { sourceType: 'campaign', label: 'Campaign engagement', defaultPoints: 5 },
   promotion_redemption: { sourceType: 'promotion', label: 'Promotions redeemed', defaultPoints: 5 },
-  qr_scan: { sourceType: 'qr_scan', label: 'QR scans', defaultPoints: 3 }
+  qr_scan: { sourceType: 'qr_scan', label: 'QR scans', defaultPoints: 10 }
 });
 export function createProgressionMetricsCore({ supabase } = {}) {
   if (!supabase) throw new Error('Progression Metrics Core requires Supabase.');
