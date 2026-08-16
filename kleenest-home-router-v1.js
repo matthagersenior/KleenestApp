@@ -1,0 +1,2 @@
+/* Home adapter: keeps existing modular entry and swaps only the Home surface. */
+(function(g){'use strict';function go(){if(!g.KleenestHomeV1)return;var active=document.querySelector('[data-tab="Home"],#tab-home,.tab-home');if(active)active.addEventListener('click',function(){setTimeout(function(){g.KleenestHomeV1.refresh()},0)});if(document.body){document.body.addEventListener('kleenest-home-open',function(){g.KleenestHomeV1.refresh()})}}g.addEventListener('load',go);setTimeout(go,0);})(window);
