@@ -6,9 +6,12 @@
     if(started)return;
     started=true;
     try{
+      const media=await import('./cores/media/kleenest-media-core.js');
+      window.KleenestMediaCore=media;
+      window.KleenestMediaCoreContract=media.mediaCoreContract;
       window.KleenestNavigation?.init?.();
       if(window.KleenestUI?.refreshLiveState) await window.KleenestUI.refreshLiveState('app-bootstrap');
-      window.dispatchEvent(new CustomEvent('kleenest:app-ready',{detail:{timestamp:Date.now()}}));
+      window.dispatchEvent(new CustomEvent('kleenest:app-ready',{detail:{timestamp:Date.now(),mediaCore:media.mediaCoreContract.version}}));
     }catch(error){
       window.dispatchEvent(new CustomEvent('kleenest:action-error',{detail:{action:'app-bootstrap',error}}));
     }
