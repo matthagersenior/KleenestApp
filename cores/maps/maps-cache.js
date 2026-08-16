@@ -1,0 +1,2 @@
+/* Maps Cache Module: memory cache with explicit freshness. */
+export function createMapsCache({ ttlMs=5*60*1000 }={}) { let value=null, savedAt=0; function set(data){value=data;savedAt=Date.now();return value} function get(){return value} function isFresh(){return value!==null && Date.now()-savedAt<ttlMs} function clear(){value=null;savedAt=0} return Object.freeze({set,get,isFresh,clear}); }
