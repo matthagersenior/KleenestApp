@@ -97,6 +97,8 @@ For every audit pass record:
 - Added `cores/progression/progression-challenges-core.js` with real Supabase-backed challenge loading/join/completion behavior.
 - Added `kleenest-progression-challenges-bridge.js` and loaded it from the modular bootstrap so the Social → Compete surface now consumes the production challenge dataset rather than merely listing it.
 - Added app-wide styling for the challenge cards using the existing Kleenest visual language.
+- Enforced one challenge entry per user/challenge and blocked client mutation of `completed_at`.
+- Added an Admin Community → Progression bridge exposing actions, games, challenges, challenge entries, badges, and streaks through the existing protected Data & CRUD surface.
 
 ## Current active audit track
 
