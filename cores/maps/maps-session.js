@@ -1,0 +1,2 @@
+/* Maps Session Module: viewport/session continuity. */
+export function createMapsSession(){let viewport=null;function setViewport(next){viewport=next?{...next}:null;return viewport}function getViewport(){return viewport?{...viewport}:null}function destroy(){viewport=null}return Object.freeze({setViewport,getViewport,destroy})}
