@@ -96,7 +96,7 @@ For every audit pass record:
   - awards the configured challenge reward through the canonical gamification/point path
   - remains idempotent on repeated completion attempts
 - Added `cores/progression/progression-challenges-core.js` with real Supabase-backed challenge loading/join/completion behavior.
-- Added `kleenest-progression-challenges-bridge.js` and loaded it from the modular bootstrap so the Social → Compete surface now consumes the production challenge dataset rather than merely listing it.
+- Added `kleenest-progression-challenges-bridge-v1.js` and loaded it from the modular bootstrap so the Social → Compete surface now consumes the production challenge dataset rather than merely listing it.
 - Added app-wide styling for the challenge cards using the existing Kleenest visual language.
 - Enforced one challenge entry per user/challenge and blocked client mutation of `completed_at`.
 - Added an Admin Community → Progression bridge exposing actions, games, challenges, challenge entries, badges, and streaks through the existing protected Data & CRUD surface.
@@ -121,22 +121,12 @@ For every audit pass record:
 - Replaced remaining account destructive browser confirmation in the control bridge with an in-app confirmation dialog.
 - Corrected the Business feature-gap bridge so advanced datasets require Growth/Enterprise **and** Owner/Admin/Manager; Analyst is no longer treated as a CRUD-capable advanced role.
 
-### 2026-08-16 — P0 shell hardening
-
-- Inspected the modular shell's privileged navigation and all consumer/business/admin initialization error surfaces.
-- Removed stale `KleenestBusinessState` length/current-business heuristics from Business navigation authorization; privileged navigation is now derived from the authenticated user's actual business/admin role signals.
-- Added route-level authorization guards so manually navigating to Business/Admin while unauthorized redirects to Home rather than mounting a privileged surface.
-- Replaced raw backend/internal error messages shown to consumers with safe, user-facing fallback messages while retaining detailed errors in the console for diagnostics.
-- Added retry controls to Business/Admin initialization failures.
-- Preserved real lazy loading for Social/Maps and the existing server-side permission enforcement; no client-only authorization is treated as a security boundary.
-
 ### Verification
 
 - Reviewed the modular entrypoint and shell dependency graph before changes.
 - Confirmed Maps renderer consumes real location records and existing verification/provenance fields; no synthetic trust score/evidence was introduced.
 - Confirmed Business/Admin mobile destinations are derived from the existing role signals used by the modular shell.
 - Confirmed current map ingestion already uses JWT-protected `ingest-map-candidates` and writes source provenance (`source_dataset`, `source_external_id`, `source_metadata`).
-- Reviewed the Maps core contract and verified all required modules are still initialized through the modular shell.
 
 ### Remaining P0 work
 
@@ -146,7 +136,16 @@ For every audit pass record:
 - Remove remaining monolith-style startup/global dependencies through lazy module ownership.
 - Complete device/browser regression coverage before declaring P0 complete.
 
-## Current active audit track
+## 2026-08-16 — P0 consumer hierarchy refinement
+
+- Audited the canonical Home Core against the product hierarchy established in the master assessment.
+- Confirmed the Home priority bridge uses the real Maps navigation path and does not create a fake discovery surface.
+- Reordered the rendered Home sections so the consumer utility flow is structurally prioritized: restroom discovery → quick actions/activity → local discovery → challenges/contests/rankings → games → collection/progression.
+- Kept all underlying datasets and actions intact; this was a hierarchy/wiring correction rather than a feature removal.
+- Preserved mobile responsive behavior and the existing Kleenest visual language.
+- Commit: `0f4c1fc4b56d63045e8f2b6b6fd238ec66759ee0`.
+
+### Current active audit track
 
 **P0/P1/P2 implementation:**
 
