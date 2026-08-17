@@ -151,12 +151,22 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - The bootstrap was also loading the older `kleenest-business-feature-gap-bridge-v1.js` and `kleenest-business-feature-entitlement-enforcer-v1.js`, creating a second Business feature/entitlement surface with different contracts and an independent DOM observer.
 - Removed both stale loaders from `index.html` and advanced the bootstrap cache key. The canonical Business Workspace adapter remains the single Business surface entry.
 
+## 2026-08-17 — Six-tab core boundary
+
+- Confirmed the architectural target: exactly six tab-level Core owners — Home, Maps, Social, Profile, Business, Admin.
+- Inspected `cores/` and found that Business, Maps and Social contained multiple generations or competing surface/core implementations. Maps includes `maps-core.js` plus `maps-core-safe-v2.js` and multiple versioned supporting modules; Social includes `social-core.js` and `social-core-v2.js`; Business includes CRUD/value/bridge modules alongside top-level Business implementations.
+- Established canonical tab-core entrypoints: `cores/home/home-core.js`, `cores/maps/maps-tab-core.js`, `cores/social/social-tab-core.js`, `cores/profile/profile-core.js`, `cores/business/business-core.js`, and `cores/admin/admin-core.js`.
+- Added `core/kleenest-tab-core-registry-v1.js` as the sole registry for the six tab lifecycle owners.
+- Loaded the six-tab registry before the modular shell so the shell's fallback registrations cannot replace an already-registered canonical tab core.
+- Advanced bootstrap cache keys and recorded the canonical tab-core set in runtime identity.
+- The tab-core boundary is now canonical at the lifecycle level. Supporting modules may remain underneath a tab core; they are not independent tab owners.
+
 ## Verification status
 
 - Static source inspection and committed implementation changes are complete for the batches above.
-- Runtime/browser end-to-end verification remains required for Business CRUD against the deployed schema/RLS contract.
-- Live Supabase SECURITY DEFINER inspection is currently connector-permission constrained and must be resumed with sufficient database inspection privileges.
-- Maps P0 source repair and cache-bust are complete in the authoritative modular source; deployed-device verification remains required.
-- The canonical registry/adapter wiring is now statically contract-consistent; browser runtime verification is still required to confirm all six surfaces mount/unmount correctly through the new lifecycle path.
-- Business now has one canonical workspace loader in the modular bootstrap; deployed/browser verification is still required to confirm no feature-gap functionality was lost when the stale bridge was removed.
+- The six tab-core registry is loaded before the shell and registers exactly `home`, `maps`, `social`, `profile`, `business`, and `admin`.
+- Browser runtime verification remains required for all six mount/unmount paths and for Business CRUD against the deployed schema/RLS contract.
+- Maps still contains legacy/versioned supporting implementations; the next cleanup pass must trace every Maps importer and collapse the duplicate implementations into the canonical Maps Core dependency tree before deleting anything.
+- Social still contains `social-core.js` and `social-core-v2.js`; the canonical tab boundary now owns the surface, but the implementation generations still need a consolidation pass.
+- Business still contains multiple supporting/value/bridge generations; the canonical tab boundary is established, but duplicate runtime globals/importers need a dependency trace before removal.
 - A feature is not considered complete merely because it renders or registers; the audit requires real data mutation, authorization, side effects, and refresh behavior.
