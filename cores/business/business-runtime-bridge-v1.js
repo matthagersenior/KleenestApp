@@ -1,5 +1,6 @@
 import {createBusinessValueCore} from './business-value-core.js';
 import {createBusinessCrudCore} from './business-crud-core.js';
+import {getBusinessFeature,businessFeatureAccess,BUSINESS_FEATURES} from './business-feature-registry.js';
 
 const getSupabase=()=>window.KleenestSupabase?.getClient?.()||window.KleenestSupabase?.client||window.supabaseClient||null;
 const getUser=()=>window.KleenestAuth?.user||window.currentUser||null;
@@ -13,5 +14,8 @@ window.KleenestBusinessCore={
     const crud=createBusinessCrudCore({supabase,user,valueCore});
     return Object.freeze({value:valueCore,crud});
   },
+  feature:(key)=>getBusinessFeature(key),
+  featureAccess:(key,context={})=>businessFeatureAccess(key,context),
+  features:BUSINESS_FEATURES,
   ready:true
 };
