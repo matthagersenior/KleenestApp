@@ -85,3 +85,12 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Added `cores/platform/platform-data-provenance.js` as the canonical provenance/freshness contract for OSM, Overpass, government/public, business, community, system, and derived datasets.
 - These are implementation primitives for P0/P1/P2 cross-core consistency, not UI placeholders.
 - Remaining verification: wire both contracts into every applicable consumer core, run browser/runtime regression checks, and update the gate status only after end-to-end verification.
+
+## 2026-08-16 — Business CRUD authority hardening
+
+- Audited the Business feature registry and found advanced CRUD datasets were registered but did not have a single concrete CRUD authority exposed by the Business Value Core.
+- Added real list/get/create/update/delete operations to `business-value-core.js` for registered CRUD features, including Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs.
+- Enforced business membership, tier entitlement, role restrictions, business scoping, safe dataset/ordering/filter identifiers, mutable-field allowlisting, and record existence checks.
+- Added progression metrics for create/update/delete operations.
+- Kept analytics/status-only registry entries outside arbitrary CRUD.
+- Remaining verification: connect each Business UI adapter to these operations and verify corresponding Supabase RLS/schema behavior end-to-end before declaring the Business CRUD gate complete.
