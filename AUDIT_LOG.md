@@ -103,3 +103,16 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Preserved the legacy `KleenestAuth` namespace for compatibility, including OAuth.
 - No schema, RLS, or RPC authorization changes made in this pass.
 - Remaining risk: repository-wide event-listener and cross-cutting service consumer tracing is still required before removing additional compatibility layers.
+
+## 2026-08-17 — Shared capability / lifecycle ownership pass
+
+- Inspected the authoritative branch tree directly after confirming GitHub code-search indexing is unavailable for this repository; broad code-search results must not be treated as proof of absence.
+- Confirmed Rewards is an app-level synchronization service: it reads the canonical Supabase facade, updates shared runtime user state, and publishes reward events.
+- Removed Rewards' implicit call to a free/global `render()` function. Reward synchronization now publishes explicit `kleenest:rewards-updated` events without forcing an unrelated surface renderer to run.
+- Confirmed the Notifications UI is app-lifetime infrastructure and routes notification mutations through `KleenestActions`; it is not a seventh tab core.
+- Confirmed `KleenestEvents` is the shared event/error boundary and provides removable subscriptions for feature-scoped consumers.
+- Confirmed Maps has explicit teardown for navigation, renderer, routes, location, and session, preserving the Maps-only GPS lifecycle.
+- Confirmed Growth/Perks explicitly covers `growth`, `enterprise`, and `fleet` business tiers; it is a Business capability rather than another tab core.
+- Confirmed Fleet is a Business/enterprise capability, not a seventh tab. Fleet workspace buttons previously referenced obsolete `KleenestModularShellV11`; they now route through canonical `KleenestModularShellV13`.
+- No Supabase schema/RLS/RPC authorization changes made in this pass.
+- Remaining risk: many historical v1/v2/v3 files remain in the repository as reference/compatibility artifacts; each must be classified by actual bootstrap/consumer reachability before deletion.
