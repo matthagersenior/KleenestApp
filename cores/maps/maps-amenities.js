@@ -1,2 +1,0 @@
-/* Maps Amenities: canonical detail enrichment. */
-export function createMapsAmenities({supabase}={}){async function get(locationId){if(!supabase)throw new Error('Supabase is required.');const {data,error}=await supabase.rpc('get_location_details',{p_location_id:locationId});if(error)throw error;return data}return Object.freeze({get})}
