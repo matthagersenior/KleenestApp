@@ -16,20 +16,30 @@ export function createMapsDiscovery({supabase}={}){
     try{let q=supabase.from('locations').select('*').limit(safeLimit);if(filters.placeType)q=q.eq('place_type',filters.placeType);if(filters.verifiedOnly)q=q.eq('bathroom_verification_status','has_bathroom');if(filters.source)q=q.eq('source',filters.source);const r=await q;if(!r.error&&Array.isArray(r.data))dbRows=r.data;else if(r.error)console.warn('[Maps] locations query failed',r.error)}catch(e){console.warn('[Maps] locations query failed',e)}
     if(destroyed)return[];
     let rows=mergeUnique(authoritative,dbRows,safeLimit),publicRows=[];
-    if(Number.isFinite(lat)&&Number.isFinite(lng)&&rows.length<safeLimit){
-      publicRows=await fetchOsm({lat,lng,radiusMeters:safeRadius,limit:safeLimit}).catch(e=>{console.warn('[Maps] live public discovery failed',e);return[]});
-      if(destroyed)return[];
-      rows=mergeUnique(rows,publicRows,safeLimit);
-    }else if(Number.isFinite(lat)&&Number.isFinite(lng)){
-      void fetchOsm({lat,lng,radiusMeters:safeRadius,limit:safeLimit}).then(r=>ingestion.ingest(r)).catch(e=>console.warn('[Maps] live OSM enrichment failed',e));
-    }
+    if(Number.isFinite(lat)&&Number.isFinite(lng)&&rows.length<safeLimit){publicRows=await fetchOsm({lat,lng,radiusMeters:safeRadius,limit:safeLimit).catch(e=>{console.warn('[Maps] live public discovery failed',e);return[]});if(destroyed)return[];rows=mergeUnique(rows,publicRows,safeLimit)}else if(Number.isFinite(lat)&&Number.isFinite(lng)){void fetchOsm({lat,lng,radiusMeters:safeRadius,limit:safeLimit}).then(r=>ingestion.ingest(r)).catch(e=>console.warn('[Maps] live OSM enrichment failed',e))}
     if(publicRows.length)void ingestion.ingest(publicRows).catch(e=>console.warn('[Maps] OSM persistence failed',e));
     return applyFilters(rows,filters);
+  }
+  async function promoteExternal(row){
+    if(destroyed)throw new Error('Maps discovery is unavailable.');
+    if(!row||String(row.source||'').toLowerCase()!=='osm')throw new Error('Only OSM public locations can be promoted.');
+    const sourceId=String(row.source_id||'').trim();
+    if(!sourceId)throw new Error('Public location has no external source identifier.');
+    await ingestion.ingest([row]);
+    const candidates=[sourceId,`osm:${sourceId}`];
+    for(let attempt=0;attempt<4;attempt++){
+      const r=await supabase.from('external_location_records').select('location_id,external_id,active').in('external_id',candidates).limit(1);
+      if(r.error)throw r.error;
+      const match=(r.data||[]).find(x=>x.active!==false&&x.location_id);
+      if(match?.location_id)return String(match.location_id);
+      await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+    }
+    throw new Error('Public location was ingested but its Kleenest location could not be resolved.');
   }
   async function search(searchText,limit=100){if(destroyed)return[];const text=String(searchText||'').trim();if(!text)return refresh({limit});try{const r=await supabase.rpc('search_locations',{search_text:text,max_results:Math.min(Math.max(Number(limit)||100,1),100)});if(!r.error&&Array.isArray(r.data))return r.data;console.warn('[Maps] search_locations unavailable; using text fallback',r.error)}catch(e){console.warn('[Maps] search_locations unavailable',e)}const r=await supabase.from('locations').select('*').limit(Math.min(Number(limit)||100,100));if(r.error)throw r.error;const needle=text.toLowerCase();return(r.data||[]).filter(x=>[x.name,x.address,x.city,x.state,x.postal_code].some(v=>String(v||'').toLowerCase().includes(needle)))}
   async function nearby({lat,lng,radiusMeters=16093,filters={}}={}){return refresh({filters,position:{coords:{latitude:lat,longitude:lng}},radiusMeters})}
   function destroy(){destroyed=true;activeController?.abort();activeController=null}
-  return Object.freeze({refresh,nearby,search,destroy});
+  return Object.freeze({refresh,nearby,search,promoteExternal,destroy});
   async function fetchOsm({lat,lng,radiusMeters,limit}){const query=`[out:json][timeout:8];(nwr["amenity"~"^(toilets|restaurant|fast_food|cafe|fuel|hospital|clinic|pharmacy|library|bank|atm)$"](around:${Math.round(radiusMeters)},${lat},${lng});nwr["shop"~"^(supermarket|convenience|mall|bakery)$"](around:${Math.round(radiusMeters)},${lat},${lng});nwr["leisure"~"^(park|playground|sports_centre)$"](around:${Math.round(radiusMeters)},${lat},${lng});nwr["tourism"~"^(hotel|motel|hostel)$"](around:${Math.round(radiusMeters)},${lat},${lng}););out center tags;`;const controller=new AbortController();activeController=controller;const timer=setTimeout(()=>controller.abort(),9000);try{const response=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query),{headers:{Accept:'application/json','User-Agent':'KleenestApp/1.0 (+https://matthagersenior.github.io/KleenestApp/)'},signal:controller.signal});if(!response.ok)throw new Error('Overpass HTTP '+response.status);const json=await response.json();return(Array.isArray(json.elements)?json.elements:[]).map(el=>normalizeOsm(el,lat,lng)).filter(x=>Number.isFinite(x.latitude)&&Number.isFinite(x.longitude)).sort((a,b)=>a.distance_meters-b.distance_meters).slice(0,limit)}finally{clearTimeout(timer);if(activeController===controller)activeController=null}}
   function normalizeOsm(el,originLat,originLng){const tags=el.tags||{},latitude=Number(el.lat??el.center?.lat),longitude=Number(el.lon??el.center?.lon),placeType=normalizePlaceType(tags),address=[tags['addr:housenumber'],tags['addr:street']].filter(Boolean).join(' ')||tags['addr:full']||'';return{id:'osm:'+String(el.type)+':'+String(el.id),source:'osm',source_id:String(el.type)+':'+String(el.id),name:tags.name||tags.operator||titleFor(placeType),place_type:placeType,latitude,longitude,address,city:tags['addr:city']||'',state:tags['addr:state']||'',postal_code:tags['addr:postcode']||'',phone:tags.phone||tags['contact:phone']||'',website:tags.website||tags['contact:website']||'',opening_hours:tags.opening_hours||null,bathroom_verification_status:tags.amenity==='toilets'?'has_bathroom':'unknown',access:tags.access||tags['toilets:access']||null,accessibility:tags.wheelchair||tags['toilets:wheelchair']||null,amenities:tags,external:true,distance_meters:haversineMeters(originLat,originLng,latitude,longitude),tags,source_metadata:{osm_type:el.type,osm_id:el.id,tags}}}
   function normalizePlaceType(tags){if(tags.amenity==='fuel')return'gas_station';if(tags.amenity==='fast_food')return'fast_food';if(tags.amenity==='toilets')return'restroom';if(tags.amenity==='cafe')return'cafe';if(['hospital','clinic','pharmacy'].includes(tags.amenity))return'hospital';if(tags.leisure)return'park';if(tags.shop)return'retail';if(tags.tourism)return'lodging';return tags.amenity||'place'}
