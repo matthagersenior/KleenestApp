@@ -1,5 +1,5 @@
 -- Public-data ingestion catalog and durable import queue.
--- Keeps provenance separate from Kleenest observations and never treats external data as user/business verification.
+-- External facts remain provenance-tagged observations and never become user/business verification.
 
 create table if not exists public.external_data_datasets (
   id uuid primary key default gen_random_uuid(),
@@ -65,6 +65,6 @@ $$;
 revoke all on function public.search_public_data_catalog(text,integer) from public;
 grant execute on function public.search_public_data_catalog(text,integer) to authenticated;
 
-insert into public.external_data_sources (name, source_type, base_url, attribution_text, license_name, license_url, metadata)
-select 'Data.gov Catalog','government_catalog','https://catalog.data.gov/','U.S. Government open-data catalog','Public/open-data varies by publisher','https://resources.data.gov/catalog-api/',jsonb_build_object('catalog_api','https://api.gsa.gov/technology/datagov/v4/','purpose','discover permitted government datasets; import requires per-dataset license review')
-where not exists (select 1 from public.external_data_sources where name='Data.gov Catalog');
+insert into public.external_data_sources (source_key, name, source_url, attribution_text, license_name, license_url, active)
+select 'datagov','Data.gov Catalog','https://catalog.data.gov/','U.S. Government open-data catalog','Public/open-data varies by publisher','https://resources.data.gov/catalog-api/',true
+where not exists (select 1 from public.external_data_sources where source_key='datagov');
