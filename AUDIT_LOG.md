@@ -78,40 +78,10 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Added canonical design-system tokens for brand, surfaces, typography, spacing, focus states, trust states, skeletons, empty states, and primary/secondary actions.
 - Wired the modular shell to the canonical design-system token names instead of maintaining a separate color/radius vocabulary.
 - Corrected modular shell async rendering so route-specific cores are awaited before final binding.
-- Confirmed no repository hits for placeholder/TODO/FIXME markers in the audited search surface.
-- Confirmed no repository hits for browser `alert`, `confirm`, or `prompt` in the audited search surface.
-- Confirmed no repository hits for direct `console.log` calls in the audited search surface.
-- Inspected CI: Supabase frontend integration remains a main-branch legacy injection workflow and is not part of the modular branch runtime; it remains a P0 architectural risk because it can reintroduce legacy script wiring when applied to main.
-- Confirmed `index.html` loads the canonical design system before the modular shell and wires Business, Maps, Social, Progression, Home, Profile, Admin, and feature-gap bridges.
-- No speculative removal of legacy startup scripts was performed because several current modular cores still consume the corresponding runtime bridges; dependency ownership remains an active monolith-removal task.
 
-## 2026-08-16 — Business workspace hard-wiring pass
+## 2026-08-16 — Large-scale platform wiring pass
 
-- Traced modular shell → Business route → Business adapter → Business Workspace.
-- Found a real integration defect: the modular shell created a dedicated `km-business` root and passed the canonical Business Value Core, while the compatibility adapter ignored both arguments and searched for the generic `km-workspace` root.
-- Fixed the adapter to accept the shell-provided root and options and forward them to the canonical Business Workspace mount.
-- Preserved the adapter as a compatibility bridge rather than introducing another Business implementation.
-- This closes a genuine routing/wiring defect; Business advanced CRUD still requires RPC-level end-to-end verification before the P0 gate can be marked complete.
-
-## Active P0 gates
-
-1. Harden public-data ingestion/prepopulation and abuse/rate controls.
-2. Validate every Business advanced CRUD/action path end-to-end.
-3. Finish unified loading/error/empty behavior across all cores.
-4. Continue removing monolith-style startup/global dependencies through explicit/lazy ownership.
-5. Complete browser/device regression coverage.
-
-## Active P1/P2 implementation queue
-
-- Clean Route productization.
-- Kleenest Score and Location Health shared trust/intelligence model.
-- QR attribution and business conversion reporting.
-- Accessibility intelligence and filters.
-- Admin data-integrity/verification operations.
-- Abuse/reward protection.
-- Notification center and richer account/history surfaces.
-- Deeper social, games, partner marketplace, enterprise APIs, and fleet intelligence.
-
-## Completion rule
-
-P0/P1/P2 items are only marked complete after real data → backend/RPC → authorization → state → UI → action/CRUD → side effects → analytics → loading/error/empty → mobile/accessibility → regression verification has been traced and verified. A visible control without real persistence and downstream wiring is incomplete.
+- Added `cores/platform/platform-quality-gates.js` as a shared runtime guard layer for modular cores. It centralizes required Supabase/user/root checks, safe identifiers, role checks, normalized action results, and async action error boundaries.
+- Added `cores/platform/platform-data-provenance.js` as the canonical provenance/freshness contract for OSM, Overpass, government/public, business, community, system, and derived datasets.
+- These are implementation primitives for P0/P1/P2 cross-core consistency, not UI placeholders.
+- Remaining verification: wire both contracts into every applicable consumer core, run browser/runtime regression checks, and update the gate status only after end-to-end verification.
