@@ -182,6 +182,19 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Social now has one lifecycle owner (`social-tab-core.js`) and one active feature implementation (`social-core-v2.js`); the former v1 implementation is no longer a competing surface/model.
 - No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
 
+## 2026-08-17 — Business Core consolidation
+
+- Audited `cores/business` plus the older top-level Business implementations against the six-tab ownership rule.
+- Confirmed `cores/business/business-core.js` is the canonical tab-core registry target, but it previously delegated the entire Business lifecycle to `kleenest-business-workspace-adapter-v1.js`, creating an unnecessary second lifecycle boundary.
+- Moved Workspace loading, Business gap-closer enhancement, and Business Studio entitlement enforcement directly into the canonical Business Core. The tab core now owns its own mount/destroy lifecycle.
+- Removed `kleenest-business-workspace-adapter-v1.js`; it is no longer part of the Business bootstrap or lifecycle graph.
+- Removed superseded `kleenest-business-core-v1.js`, which was an independent older Business tab implementation with its own rendering, dataset loading, and CRUD placeholders.
+- Removed `cores/business/business-runtime-bridge-v1.js`, which created a second global `KleenestBusinessCore` service authority around Value Core/CRUD Core/feature registry and was not required by the canonical Business tab lifecycle.
+- Retained `cores/business/business-crud-core.js`, `business-feature-registry.js`, and `business-value-core.js` as subordinate Business services rather than treating them as additional tab cores.
+- Removed the Business workspace adapter from `index.html` and advanced the application bootstrap cache key to `127`.
+- The canonical Business Core now loads the richest existing Business Workspace implementation and its entitlement/feature-gap enhancements directly, preserving existing Business functionality while eliminating the duplicate lifecycle bridge.
+- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
+
 ## Verification status
 
 - Six canonical tab-core ownership is statically established.
@@ -190,6 +203,7 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Maps Renderer, Discovery, Location, Cache, Routes, Navigation, Details, Verification, Engagement, and Progression are subordinate services/modules of the canonical Maps Core.
 - Duplicate Maps Discovery v2, Stable Location v1, obsolete Amenities service, unused Catalog shim, and independent Maps runtime are removed.
 - Social has one lifecycle owner (`social-tab-core.js`); `social-core.js` is compatibility-only and no longer contains an alternate implementation.
-- Browser/device runtime verification remains required for Maps GPS/discovery/routing and Social rendering, realtime updates, media upload, and post mutations.
-- Static source inspection has been repeated after the Social consolidation; deployed browser verification remains the final gate.
-- Business CRUD, Supabase RLS, and the other tab-core implementations are unchanged by this Social pass.
+- Business has one lifecycle owner (`cores/business/business-core.js`); the superseded Business tab core, workspace lifecycle adapter, and duplicate runtime bridge are removed.
+- Business CRUD, feature registry, and value core remain subordinate services and retain their existing authorization contracts.
+- Browser/device runtime verification remains required for Maps GPS/discovery/routing, Social rendering/realtime/media/mutations, and Business workspace/CRUD/entitlement behavior.
+- Static source inspection has been repeated after the Business consolidation; deployed browser verification remains the final gate.
