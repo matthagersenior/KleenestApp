@@ -30,20 +30,25 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
  const verification=createMapsVerification({supabase:db,progression,user});
  const details=createMapsDetails({supabase:db,engagement,verification,routes,social:window.KleenestSocialCore||null});
  const navigation=createMapsNavigation({location,routes,onChange:next=>{renderer?.updateNavigation?.(next);navigationUI?.render(next);}});
-
+ const core={};
+ async function ensureLeaflet(){
+  if(window.L)return window.L;
+  await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=resolve;s.onerror=()=>reject(Error('Leaflet failed to load.'));document.head.appendChild(s)});
+  if(!window.L)throw Error('Leaflet failed to initialize.');
+  return window.L;
+ }
  async function refreshDiscovery(opts={}){
   const position=opts.position||state.position||location.get().position;
   state.locations=await discovery.refresh({filters:{...state.filters,...(opts.filters||{})},position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
   state.filters={...state.filters,...(opts.filters||{})};
-  renderer?.refresh?.({core,modules,state,user});
+  if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
   return state.locations;
  }
  async function requestLocationAndRefresh(){
   try{await location.request()}catch(_){}
   const position=location.get().position;
   state.position=position;
-  await refreshDiscovery({position});
-  renderer?.centerOnUser?.(position);
+  await refreshDiscovery({position,recenter:true});
  }
  async function selectLocation(id){
   state.selectedLocationId=id;
@@ -63,6 +68,7 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   if(mounted)return {destroy};
   mounted=true;
   root.replaceChildren();
+  await ensureLeaflet();
   const controls=document.createElement('section');
   controls.className='maps-core-controls';
   controls.innerHTML='<button type="button" data-map-locate>Use my location</button><input data-map-search placeholder="Search nearby places"><select data-map-radius><option value="2">2 mi</option><option value="5">5 mi</option><option value="10" selected>10 mi</option><option value="25">25 mi</option></select><select data-map-type><option value="">All locations</option><option value="restroom">Bathroom verified</option><option value="public">Public data</option></select>';
@@ -70,10 +76,11 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   root.append(controls,surface);
   root.insertAdjacentHTML('afterbegin','<style>.maps-core-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}.maps-core-controls input,.maps-core-controls select,.maps-core-controls button{border:1px solid #cfe0d9;border-radius:10px;background:#fff;padding:10px 12px;font:inherit}.maps-core-controls button{background:#0e7c6b;color:#fff;border:0;font-weight:850;cursor:pointer}.maps-core-surface{min-width:0}</style>');
   renderer=createMapsRenderer();
-  const context={core,modules:{location,discovery,cache:null,session,filters,renderer,routes,routing,navigation,details,verification,engagement,progression},state,user};
+  core.modules={location,discovery,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation};
+  const context={core,modules:core.modules,state,user};
   await renderer.mount(surface,context);
   controls.querySelector('[data-map-locate]').onclick=()=>requestLocationAndRefresh().catch(console.error);
-  controls.querySelector('[data-map-search]').oninput=async e=>{const q=e.target.value.trim();if(!q)return refreshDiscovery();try{state.locations=await discovery.search(q,100);renderer.refresh(context);renderer.updateUserPosition(state.position)}catch(_){refreshDiscovery()}};
+  controls.querySelector('[data-map-search]').oninput=async e=>{const q=e.target.value.trim();if(!q)return refreshDiscovery();try{state.locations=await discovery.search(q,100);await renderer.refresh(context,{skipCore:true})}catch(_){refreshDiscovery()}};
   controls.querySelector('[data-map-radius]').onchange=()=>refreshDiscovery({radiusMeters:Number(controls.querySelector('[data-map-radius]').value)*1609.344});
   controls.querySelector('[data-map-type]').onchange=()=>setFilters({placeType:controls.querySelector('[data-map-type]').value||undefined});
   navigationUI=createMapsNavigationUI({root,navigation});
@@ -81,7 +88,7 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   return {destroy};
  }
  function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null}
- const core={name:'maps',version:'4.0.0',mount,destroy,refreshDiscovery,selectLocation,openRoute,setFilters,state,modules:{location,discovery,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation}};
+ Object.assign(core,{name:'maps',version:'4.0.0',mount,destroy,refreshDiscovery,selectLocation,openRoute,setFilters,state,modules:{location,discovery,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation}});
  return Object.freeze(core);
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
