@@ -83,8 +83,8 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 
 - Added `cores/platform/platform-quality-gates.js` as a shared runtime guard layer for modular cores. It centralizes required Supabase/user/root checks, safe identifiers, role checks, normalized action results, and async action error boundaries.
 - Added `cores/platform/platform-data-provenance.js` as the canonical provenance/freshness contract for OSM, Overpass, government/public, business, community, system, and derived datasets.
-- These are implementation primitives for P0/P1/P2 cross-core consistency, not UI placeholders.
-- Remaining verification: wire both contracts into every applicable consumer core, run browser/runtime regression checks, and update the gate status only after end-to-end verification.
+- Wired both platform contracts into the application bootstrap before product cores load.
+- Remaining verification: wire both contracts into every applicable consumer core, run browser/runtime regression checks, and update gate status only after end-to-end verification.
 
 ## 2026-08-16 — Business CRUD authority hardening
 
