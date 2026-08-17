@@ -11,8 +11,9 @@
 .card{background:var(--surface);border:1px solid var(--tile-line);border-radius:16px;padding:18px}#modular-root{min-height:100vh}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-client.js"></script>
-<script src="kleenest-supabase-runtime.js"></script>
+<script src="supabase-client.js?boot=20260817-1"></script>
+<script src="kleenest-map-preloader.js?boot=20260817-1"></script>
+<script src="kleenest-supabase-runtime.js?boot=20260817-1"></script>
 
 <script src="kleenest-actions.js"></script>
 <script src="kleenest-rewards.js"></script>
@@ -29,15 +30,18 @@
 <script src="kleenest-admin-v3-hotfix.js"></script>
 </head>
 <body>
-<div id="modular-root"><section class="card"><h1>Kleenest</h1><p>Starting authoritative app shell…</p></section></div>
+<div id="modular-root"><section class="card" id="boot-card"><h1>Kleenest</h1><p>Starting authoritative app shell…</p></section></div>
 <script>
 (function(){
  const root=document.getElementById('modular-root');
  const start=Date.now();
  function fail(e){console.error('[Kleenest boot]',e);root.innerHTML='<section class="card"><h1>Kleenest</h1><p>The authoritative app shell could not initialize.</p><pre style="white-space:pre-wrap">'+String(e.message||e)+'</pre><button onclick="location.reload()">Retry</button></section>'}
  const script=document.createElement('script');
- script.src='kleenest-app-shell-v72.js?shell=72-'+start;
- script.onload=function(){console.info('[Kleenest boot] shell loaded');};
+ script.src='kleenest-app-shell-v72.js?shell=73-'+start;
+ script.onload=function(){
+   console.info('[Kleenest boot] authoritative shell loaded');
+   if(!window.KleenestAppShellV72) fail(new Error('Shell script loaded but did not register KleenestAppShellV72.'));
+ };
  script.onerror=function(){fail(new Error('Unable to load authoritative shell'))};
  document.head.appendChild(script);
 })();
