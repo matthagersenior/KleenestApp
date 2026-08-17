@@ -9,7 +9,6 @@ export function createBusinessCrudCore({supabase,user=null,valueCore=null}={}){i
  async function authorize(businessId,feature,action='read'){
   if(!businessId)throw new Error('Business context is required.');
   const account=user||{};
-  if(account.is_admin)return {allowed:true,role:'admin',tier:'enterprise'};
   if(!account.id)throw new Error('Authentication is required.');
   const {data,error}=await supabase.from('business_members').select('role,businesses(business_tier)').eq('business_id',businessId).eq('user_id',account.id).maybeSingle();
   if(error)throw error;
