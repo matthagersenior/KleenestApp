@@ -1,3 +1,0 @@
-/* Maps Location Stable v1 — preserves GPS watch state without triggering discovery refresh on every position update. */
-import { createMapsLocation as createBase } from './maps-location.js';
-export function createMapsLocation(options={}){const base=createBase(options);return Object.freeze({request:base.request,startWatch:base.startWatch,stopWatch:base.stopWatch,get:base.get,destroy:base.destroy,subscribe:()=>()=>{}})}
