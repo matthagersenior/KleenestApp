@@ -81,43 +81,41 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 
 ## 2026-08-16 — Large-scale platform wiring pass
 
-- Added `cores/platform/platform-quality-gates.js` as a shared runtime guard layer for modular cores. It centralizes required Supabase/user/root checks, safe identifiers, role checks, normalized action results, and async action error boundaries.
-- Added `cores/platform/platform-data-provenance.js` as the canonical provenance/freshness contract for OSM, Overpass, government/public, business, community, system, and derived datasets.
-- Wired both platform contracts into the application bootstrap before product cores load.
+- Added `cores/platform/platform-quality-gates.js` as a shared runtime guard layer for modular cores.
+- Added `cores/platform/platform-data-provenance.js` as the canonical provenance/freshness contract.
+- Wired both platform contracts into application bootstrap before product cores load.
 
 ## 2026-08-16 — Business CRUD authority hardening
 
-- Added `cores/business/business-crud-core.js` with real list/get/create/update/delete operations for registered business CRUD datasets: Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs.
+- Added `cores/business/business-crud-core.js` with real list/get/create/update/delete operations for Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs.
 - Enforced authenticated membership against the requested `business_id` before entitlement checks; removed client-side `is_admin` bypass behavior.
-- Resolved Business tier from `business_members → businesses.business_tier`, not from client-controlled account state.
+- Resolved Business tier from `business_members → businesses.business_tier`.
 - Removed client-controlled `created_by` / `updated_by` mutation fields.
 - Centralized Growth vs Enterprise feature access in `cores/business/business-feature-registry.js`.
-- Corrected advanced feature requirements so Partner Programs and enterprise partner outcomes are Enterprise-gated instead of treating every advanced feature as Growth.
-- Expanded the CRUD mutable-field contract to cover real configured fields including campaign types/goals, event dates/times, contest scoring/rewards, QR action payload/customization, and business metadata.
+- Corrected advanced feature requirements so Partner Programs and enterprise partner outcomes are Enterprise-gated.
+- Expanded the CRUD mutable-field contract to cover real configured fields.
 - Added progression metrics for create/update/delete operations.
 
 ## 2026-08-16 — Business feature-gap wiring
 
-- Audited the Business feature-gap bridge and found its CRUD buttons dispatched an event but had no guaranteed production consumer.
 - Rewired Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs to real in-app CRUD editors backed by the canonical Business CRUD Core.
-- Corrected a dataset/key mismatch where the bridge was passing table names (`qr_codes`, `partner_programs`, etc.) to a core expecting canonical feature keys (`qr`, `partnerships`, etc.).
+- Corrected dataset/key mismatches between feature UI and canonical CRUD keys.
 - Added production list/create/update/delete editor flows with feature-specific fields and JSON handling.
-- Added real two-step destructive confirmation without browser `confirm()`.
-- Added in-app error notices instead of browser dialogs.
+- Added real two-step destructive confirmation and in-app error notices.
 - Preserved authenticated business membership, tier, role, business scoping, and canonical CRUD authorization.
-- No placeholder save paths were added.
 
-## 2026-08-16 — Business UX consistency
+## 2026-08-16 — Business entitlement presentation hardening
 
-- Removed remaining browser-dialog error/upgrade interactions from the Business gap-closer.
-- Preserved the canonical Business Workspace as the primary analytics/legacy RPC surface while the feature-gap layer supplies missing production CRUD entry points.
-- Identified remaining architectural task: migrate specialized legacy Business Workspace mutation handlers to the canonical CRUD authority only where the underlying table schema/RLS contract is verified; do not blindly replace working RPC-backed mutations.
+- Found that the feature-gap bridge rendered Growth/Enterprise CRUD cards as unlocked even though the canonical registry and server authority correctly classified them as advanced.
+- Added `kleenest-business-feature-entitlement-enforcer-v1.js` and wired it into the production bootstrap.
+- Standard business users now see advanced Promotions, Events, Campaigns, Contests and QR Studio controls disabled/locked; Partner Programs requires Enterprise.
+- The guard derives the business tier from the authenticated `business_members → businesses.business_tier` relationship and treats server-side CRUD authorization as authoritative.
+- This is a presentation/interaction guard, not a replacement for server authorization.
 
 ## 2026-08-16 — Live Supabase security hardening
 
-- Hardened mutable database functions with explicit `search_path = public, pg_temp` for business location metrics, business review replies, and the shared `touch_updated_at()` trigger function.
-- Removed anonymous execution from four sensitive SECURITY DEFINER functions: business leaderboard, bathroom verification details, full location details, and user leaderboard.
-- Preserved intentionally public discovery RPCs supporting the unauthenticated consumer experience.
+- Hardened mutable database functions with explicit `search_path = public, pg_temp`.
+- Removed anonymous execution from four sensitive SECURITY DEFINER functions while preserving intentionally public discovery RPCs.
 - Remaining live security gate is the authenticated SECURITY DEFINER authorization matrix plus leaked-password protection.
 - Current connected Supabase permissions later prevented re-running the live advisor/function inspection; no blind database changes were made after that boundary.
 
