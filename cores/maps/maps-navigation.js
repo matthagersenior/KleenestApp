@@ -17,23 +17,19 @@ export function createMapsNavigation({ location, routes, onChange = () => {}, ar
     const x = Math.sin(dLat / 2) ** 2 + Math.cos(la) * Math.cos(lb) * Math.sin(dLon / 2) ** 2;
     return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
   }
-
   function syncStops() {
     stops = routes && typeof routes.getStops === 'function' ? (routes.getStops() || []) : [];
     currentStopIndex = Math.min(currentStopIndex, Math.max(0, stops.length - 1));
   }
-
   function currentStep() {
     const steps = routeData && Array.isArray(routeData.steps) ? routeData.steps : [];
     return steps[currentStepIndex] || null;
   }
-
   function stepPoint(step) {
     const c = step && step.maneuver && step.maneuver.location;
     if (!Array.isArray(c) || c.length < 2) return null;
     return { longitude: Number(c[0]), latitude: Number(c[1]) };
   }
-
   function updateManeuver(point) {
     const steps = routeData && Array.isArray(routeData.steps) ? routeData.steps : [];
     if (!steps.length) return null;
@@ -49,42 +45,30 @@ export function createMapsNavigation({ location, routes, onChange = () => {}, ar
     const step = currentStep();
     if (!step) return null;
     const target = stepPoint(step);
-    return {
-      step,
-      distanceMeters: target ? Math.round(distance(point, target)) : null,
-      stepIndex: currentStepIndex,
-      totalSteps: steps.length
-    };
+    return { step, distanceMeters: target ? Math.round(distance(point, target)) : null, stepIndex: currentStepIndex, totalSteps: steps.length };
   }
-
   async function update(position) {
     if (!active || !position || !position.coords) return;
     syncStops();
-    const point = {
-      latitude: Number(position.coords.latitude),
-      longitude: Number(position.coords.longitude)
-    };
+    const point = { latitude: Number(position.coords.latitude), longitude: Number(position.coords.longitude) };
     const maneuver = updateManeuver(point);
-    if (!stops.length) {
-      onChange({ position: point, progress: 0, maneuver });
-      return;
-    }
+    if (!stops.length) { onChange({ position: point, progress: 0, maneuver }); return; }
     const stop = stops[currentStopIndex];
-    if (!stop) {
-      onChange({ position: point, progress: completed.size / stops.length, maneuver });
-      return;
-    }
+    if (!stop) { onChange({ position: point, progress: completed.size / stops.length, maneuver }); return; }
     const loc = stop.locations || stop;
-    const target = {
-      latitude: Number(loc.latitude),
-      longitude: Number(loc.longitude)
-    };
+    const target = { latitude: Number(loc.latitude), longitude: Number(loc.longitude) };
     const meters = distance(point, target);
     if (meters <= arrivalRadiusMeters && !completed.has(stop.id)) {
-      completed.add(stop.id);
+      let completionSucceeded = true;
       if (routes && typeof routes.completeStop === 'function') {
-        try { await routes.completeStop(stop.id, { arrival_distance_meters: Math.round(meters), detected_by: 'gps' }); } catch (_) {}
+        try { await routes.completeStop(stop.id, { arrival_distance_meters: Math.round(meters), detected_by: 'gps' }); }
+        catch (_) { completionSucceeded = false; }
       }
+      if (!completionSucceeded) {
+        onChange({ position: point, arrived: true, stop, completionFailed: true, progress: completed.size / stops.length, maneuver });
+        return;
+      }
+      completed.add(stop.id);
       currentStopIndex += 1;
       const progress = completed.size / stops.length;
       onChange({ position: point, arrived: true, stop, progress, maneuver });
@@ -98,50 +82,20 @@ export function createMapsNavigation({ location, routes, onChange = () => {}, ar
       onChange({ position: point, distanceToNextStopMeters: Math.round(meters), nextStop: stop, progress: completed.size / stops.length, maneuver });
     }
   }
-
   function start() {
     if (active) return;
     syncStops();
     active = true;
     if (location && typeof location.subscribe === 'function') {
       unsubscribeLocation?.();
-      unsubscribeLocation = location.subscribe(change => {
-        if (change?.position) update(change.position).catch(() => {});
-      });
+      unsubscribeLocation = location.subscribe(change => { if (change?.position) update(change.position).catch(() => {}); });
     }
     const state = location && typeof location.get === 'function' ? location.get() : null;
     if (state && state.position) update(state.position).catch(() => {});
     onChange({ active: true, stops: stops.length, routeData, step: currentStep() });
   }
-
-  function stop() {
-    active = false;
-    unsubscribeLocation?.();
-    unsubscribeLocation = null;
-    onChange({ active: false });
-  }
-
-  function reset() {
-    completed = new Set();
-    currentStopIndex = 0;
-    currentStepIndex = 0;
-    syncStops();
-  }
-
-  function setRouteData(data) {
-    routeData = data || null;
-    currentStepIndex = 0;
-    onChange({ routeData, step: currentStep() });
-    return routeData;
-  }
-
-  return Object.freeze({
-    start,
-    stop,
-    reset,
-    update,
-    setRouteData,
-    isActive: () => active,
-    getState: () => ({ active, currentStopIndex, completedStops: completed.size, totalStops: stops.length, currentStepIndex, step: currentStep() })
-  });
+  function stop() { active = false; unsubscribeLocation?.(); unsubscribeLocation = null; onChange({ active: false }); }
+  function reset() { completed = new Set(); currentStopIndex = 0; currentStepIndex = 0; syncStops(); }
+  function setRouteData(data) { routeData = data || null; currentStepIndex = 0; onChange({ routeData, step: currentStep() }); return routeData; }
+  return Object.freeze({ start, stop, reset, update, setRouteData, isActive: () => active, getState: () => ({ active, currentStopIndex, completedStops: completed.size, totalStops: stops.length, currentStepIndex, step: currentStep() }) });
 }
