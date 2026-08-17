@@ -118,3 +118,4 @@ jobs:
           test -f supabase/migrations/20260817123000_harden_public_tables_and_pricing_authority_v1.sql
           test -f supabase/migrations/20260817123001_tighten_public_security_definer_execute_v1.sql
           test -f supabase/migrations/20260817123002_establish_canonical_pricing_read_model_v1.sql
+          test -f supabase/migrations/20260817123003_close_remaining_public_table_rls_gaps_v1.sql
