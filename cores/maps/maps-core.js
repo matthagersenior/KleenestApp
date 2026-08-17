@@ -18,10 +18,10 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
  if(!root)throw new Error('Maps Core requires a mount root.');
  const db=supabase||window.KleenestSupabaseClient;
  if(!db?.from)throw new Error('Maps Core requires the canonical Supabase client.');
- let mounted=false,renderer=null,navigationUI=null,refreshPromise=null,lastDiscoveryPosition=null;
+ let mounted=false,renderer=null,navigationUI=null,refreshPromise=null,lastDiscoveryPosition=null,queuedRefreshPosition=null;
  const state={locations:[],selectedLocationId:null,filters:{},position:null,permission:'unknown'};
  const progression=createMapsProgression({progressionCore:window.KleenestProgression||null});
- const location=createMapsLocation({onChange:next=>{if(next.position){state.position=next.position;renderer?.updateUserPosition?.(next.position);if(mounted&&!refreshPromise&&shouldRefreshForPosition(next.position,lastDiscoveryPosition)){refreshDiscovery({position:next.position,recenter:false}).catch(error=>console.warn('[Maps] location-change refresh failed',error))}}if(next.permission)state.permission=next.permission;}});
+ const location=createMapsLocation({onChange:next=>{if(next.position){state.position=next.position;renderer?.updateUserPosition?.(next.position);if(mounted&&shouldRefreshForPosition(next.position,lastDiscoveryPosition)){if(refreshPromise)queuedRefreshPosition=next.position;else refreshDiscovery({position:next.position,recenter:false}).catch(error=>console.warn('[Maps] location-change refresh failed',error))}}if(next.permission)state.permission=next.permission;}});
  const discovery=createMapsDiscovery({supabase:db});
  const filters=createMapsFilters({supabase:db});
  const cache=createMapsCache({ttlMs:5*60*1000});
@@ -45,10 +45,15 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
    try{
     const position=opts.position||state.position||location.get().position;
     const effectiveFilters={...state.filters,...(opts.filters||{})};
-    state.locations=await discovery.refresh({filters:effectiveFilters,position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
+    if(!position){
+     const cached=cache.isFresh()?cache.get():null;
+     state.locations=Array.isArray(cached)?cached:[];
+    }else{
+     state.locations=await discovery.refresh({filters:effectiveFilters,position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
+     lastDiscoveryPosition=position;
+     cache.set(state.locations);
+    }
     state.filters=effectiveFilters;
-    if(position)lastDiscoveryPosition=position;
-    cache.set(state.locations);
     if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
     return state.locations;
    }catch(error){
@@ -58,7 +63,12 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
     console.warn('[Maps] discovery failed; using fresh cache',error);
     if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
     return state.locations;
-   }finally{refreshPromise=null}
+   }finally{
+    const queued=queuedRefreshPosition;
+    queuedRefreshPosition=null;
+    refreshPromise=null;
+    if(mounted&&queued&&shouldRefreshForPosition(queued,lastDiscoveryPosition))refreshDiscovery({position:queued,recenter:false}).catch(error=>console.warn('[Maps] queued location refresh failed',error));
+   }
   })();
   return refreshPromise;
  }
@@ -100,13 +110,13 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   controls.querySelector('[data-map-locate]').onclick=()=>requestLocationAndRefresh().catch(console.error);
   controls.querySelector('[data-map-search]').oninput=async e=>{const q=e.target.value.trim();if(!q)return refreshDiscovery();try{state.locations=await discovery.search(q,100);cache.set(state.locations);await renderer.refresh(context,{skipCore:true})}catch(_){refreshDiscovery()}};
   controls.querySelector('[data-map-radius]').onchange=()=>refreshDiscovery({radiusMeters:Number(controls.querySelector('[data-map-radius]').value)*1609.344});
-  controls.querySelector('[data-map-type]').onchange=()=>setFilters({placeType:controls.querySelector('[data-map-type]').value||undefined});
+  controls.querySelector('[data-map-type]').onchange=()=>setFilters({placeType:controls.querySelector('[data-map-type]').value||undefined,source:controls.querySelector('[data-map-type]').value==='public'?'osm':undefined,verifiedOnly:false});
   navigationUI=createMapsNavigationUI({root,navigation});
   location.startWatch();
   await requestLocationAndRefresh();
   return {destroy};
  }
- function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null;lastDiscoveryPosition=null;refreshPromise=null}
+ function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null;lastDiscoveryPosition=null;queuedRefreshPosition=null;refreshPromise=null}
  Object.assign(core,{name:'maps',version:'4.0.0',mount,destroy,refreshDiscovery,selectLocation,openRoute,setFilters,state,modules:{location,discovery,cache,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation}});
  return Object.freeze(core);
 }
