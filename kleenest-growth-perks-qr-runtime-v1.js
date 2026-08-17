@@ -1,0 +1,9 @@
+/* Growth+ business progression, earned perks, and single-use QR contract. */
+(function(g){'use strict';if(g.KleenestGrowthPerksQRRuntimeV1)return;
+const GROWTH=new Set(['growth','enterprise','fleet']);
+const PERKS={search_boost:{label:'Search Boost',description:'Temporary priority placement in nearby search.'},geofence_notifications:{label:'Geofence Notifications',description:'Notify opted-in users entering a business geofence.'},featured_placement:{label:'Featured Placement',description:'Earn premium discovery placement.'},qr_campaign:{label:'QR Campaign',description:'Enhanced QR attribution and reporting.'},amenity_insights:{label:'Amenity Intelligence',description:'Deeper amenity demand and gap analytics.'}};
+function client(){return g.KleenestSupabaseClient||g.KleenestSupabase?.client?.()||g.KleenestSupabase?.client||null}
+async function business(){const c=client();if(!c)return null;const u=(await c.auth.getUser()).data?.user;if(!u)return null;const r=await c.from('business_members').select('business_id,role,businesses(id,name,business_tier)').eq('user_id',u.id);if(r.error)throw r.error;return(r.data||[]).find(x=>['owner','admin','manager'].includes(String(x.role).toLowerCase()))||null}
+async function earn(perk){const m=await business();if(!m)throw Error('Business management access required.');const tier=String(m.businesses?.business_tier||'standard').toLowerCase();if(!GROWTH.has(tier))throw Error('Growth or above required.');const r=await client().rpc('award_business_progression_perk',{p_business_id:m.business_id,p_perk_code:perk});if(r.error)throw r.error;g.dispatchEvent(new CustomEvent('kleenest:business-perk-earned',{detail:r.data}));return r.data}
+async function consumeSingleUse(code){const r=await client().rpc('consume_single_use_qr',{p_code:code});if(r.error)throw r.error;return r.data}
+g.KleenestGrowthPerksQRRuntimeV1={perks:PERKS,earn,consumeSingleUse};})(window);
