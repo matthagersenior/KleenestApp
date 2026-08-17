@@ -2,6 +2,7 @@
 (function(g){'use strict';if(g.KleenestProfileConnectedAccountsV1)return;
 async function enhance(root){
  const s=g.KleenestSupabaseClient||(g.KleenestSupabase&&g.KleenestSupabase.client&&g.KleenestSupabase.client());if(!s?.auth||!root)return;
+ if(!document.getElementById('pf2-canonical-style')){const st=document.createElement('style');st.id='pf2-canonical-style';st.textContent='.pf2{font-size:16px}.pf2-hero{border-radius:24px!important;box-shadow:0 14px 36px rgba(22,53,45,.14)!important}.pf2-card{border-radius:20px!important;border-color:#cfe3da!important;background:linear-gradient(145deg,#fff,#f4faf7)!important;box-shadow:0 9px 28px rgba(22,33,29,.07)!important}.pf2-card h2{font-size:1.25rem}.pf2-card label,.pf2-card input,.pf2-card textarea,.pf2-card button{font-size:1rem}.pf2-nav button{font-size:.96rem}.pf2-actions button{min-height:44px}.pf2-card small{font-size:.75rem}';document.head.appendChild(st)}
  const userResult=await s.auth.getUser().catch(()=>({data:{user:null}}));const user=userResult.data?.user||null;
  const card=[...root.querySelectorAll('.pf2-card')].find(x=>/CONNECTED ACCOUNTS/i.test(x.textContent||''));if(!card)return;
  const ids=user?.identities||[];const providers=new Set(ids.map(x=>String(x.provider||'').toLowerCase()));
