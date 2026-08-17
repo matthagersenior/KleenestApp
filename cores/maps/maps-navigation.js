@@ -1,12 +1,12 @@
 /* Maps Navigation Core — canonical, mobile-safe navigation state. */
 export function createMapsNavigation({ location, routes, onChange = () => {}, arrivalRadiusMeters = 75 } = {}) {
   let active = false;
-  let watching = false;
   let currentStopIndex = 0;
   let currentStepIndex = 0;
   let completed = new Set();
   let stops = [];
   let routeData = null;
+  let unsubscribeLocation = null;
 
   function distance(a, b) {
     const R = 6371000;
@@ -103,17 +103,21 @@ export function createMapsNavigation({ location, routes, onChange = () => {}, ar
     if (active) return;
     syncStops();
     active = true;
-    watching = true;
-    if (location && typeof location.startWatch === 'function') location.startWatch();
+    if (location && typeof location.subscribe === 'function') {
+      unsubscribeLocation?.();
+      unsubscribeLocation = location.subscribe(change => {
+        if (change?.position) update(change.position).catch(() => {});
+      });
+    }
     const state = location && typeof location.get === 'function' ? location.get() : null;
-    if (state && state.position) update(state.position);
+    if (state && state.position) update(state.position).catch(() => {});
     onChange({ active: true, stops: stops.length, routeData, step: currentStep() });
   }
 
   function stop() {
     active = false;
-    watching = false;
-    if (location && typeof location.stopWatch === 'function') location.stopWatch();
+    unsubscribeLocation?.();
+    unsubscribeLocation = null;
     onChange({ active: false });
   }
 
@@ -138,6 +142,6 @@ export function createMapsNavigation({ location, routes, onChange = () => {}, ar
     update,
     setRouteData,
     isActive: () => active,
-    getState: () => ({ active, watching, currentStopIndex, completedStops: completed.size, totalStops: stops.length, currentStepIndex, step: currentStep() })
+    getState: () => ({ active, currentStopIndex, completedStops: completed.size, totalStops: stops.length, currentStepIndex, step: currentStep() })
   });
 }
