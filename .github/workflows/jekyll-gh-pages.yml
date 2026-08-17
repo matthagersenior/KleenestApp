@@ -1,9 +1,9 @@
-# Deploy the current Kleenest app from main to GitHub Pages.
+# Deploy the authoritative modular Kleenest app from refactor/monolith-removal to GitHub Pages.
 name: Deploy Kleenest to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["refactor/monolith-removal"]
   workflow_dispatch:
 
 permissions:
@@ -19,10 +19,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main app
+      - name: Checkout authoritative modular app
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: refactor/monolith-removal
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Build static site
@@ -40,6 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy Pages artifact
         id: deployment
         uses: actions/deploy-pages@v5
