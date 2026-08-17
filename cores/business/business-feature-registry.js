@@ -17,16 +17,19 @@ export const BUSINESS_FEATURES=Object.freeze([
  {key:'partner_outcomes',label:'Partner Campaign Outcomes',dataset:'enterprise_partner_campaign_outcomes',advanced:true,mode:'analytics'},
 ]);
 
+const ADVANCED_ROLES=Object.freeze(['owner','admin','manager']);
+
 export function getBusinessFeature(key){return BUSINESS_FEATURES.find(f=>f.key===key)||null;}
 export function businessFeatureAccess(feature,{tier='standard',role='',isAdmin=false}={}){
  const f=typeof feature==='string'?getBusinessFeature(feature):feature;
  if(!f)return {exists:false,allowed:false,advanced:false,reason:'unknown_feature'};
  const normalizedRole=String(role).toLowerCase();
  const normalizedTier=String(tier).toLowerCase();
- const advanced=['growth','enterprise'].includes(normalizedTier);
+ const advancedTier=['growth','enterprise'].includes(normalizedTier);
  if(isAdmin)return {exists:true,allowed:true,advanced:f.advanced,reason:'admin'};
- if(['owner','admin','manager'].includes(normalizedRole))return {exists:true,allowed:!f.advanced||advanced,advanced:f.advanced,reason:f.advanced?(advanced?'tier_enabled':'upgrade_required'):'included'};
- return {exists:true,allowed:!f.advanced||advanced,advanced:f.advanced,reason:f.advanced?(advanced?'tier_enabled':'upgrade_required'):'included'};
+ if(!f.advanced)return {exists:true,allowed:true,advanced:false,reason:'included'};
+ const roleEligible=ADVANCED_ROLES.includes(normalizedRole);
+ return {exists:true,allowed:roleEligible&&advancedTier,advanced:true,reason:roleEligible?(advancedTier?'tier_enabled':'upgrade_required'):'role_restricted'};
 }
 
 export function businessFeatureGroups(){return BUSINESS_FEATURES.reduce((out,f)=>{const group=f.advanced?'advanced':'included';(out[group] ||= []).push(f);return out;},{});}
