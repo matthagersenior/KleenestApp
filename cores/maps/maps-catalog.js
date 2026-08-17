@@ -1,2 +1,0 @@
-/* Maps Catalog Module: canonical types/status metadata. */
-export function createMapsCatalog({types=[]}={}){const catalog=Object.freeze(types.slice());function list(){return catalog.slice()}return Object.freeze({list})}
