@@ -12,6 +12,7 @@
 - Classify datasets as CRUD, controlled-action, read-only, derived/internal, or orphan/needs-authority-review.
 - Preserve protected permission/entitlement boundaries.
 - Reuse the strongest existing Kleenest design language app-wide.
+- Execute P0/P1/P2 work as implementation tasks, not as a recommendation-only backlog.
 
 ## Recurring pass format
 
@@ -100,10 +101,37 @@ For every audit pass record:
 - Enforced one challenge entry per user/challenge and blocked client mutation of `completed_at`.
 - Added an Admin Community → Progression bridge exposing actions, games, challenges, challenge entries, badges, and streaks through the existing protected Data & CRUD surface.
 
+## 2026-08-16 — P0/P1/P2 implementation program started
+
+### P0 — productization foundation
+
+- Added `kleenest-design-system-v1.css` as the canonical shared visual token/state layer: brand colors, surfaces, spacing, radii, shadows, trust badges, skeletons, empty states, actions, and focus behavior.
+- Wired the design system into the modular entrypoint.
+- Added mobile-first consumer navigation with Home, Maps, Social, Profile and contextually authorized Business/Admin destinations.
+- Added safe-area handling and responsive five-item navigation when a privileged destination is present.
+- Improved Maps location trust presentation: explicit Verified / Community confirmed / Listed · verify states, accessible result labels, real loading skeletons, and useful empty/error copy.
+- Added an app description meta tag and mobile viewport-fit handling.
+
+### Verification
+
+- Reviewed the modular entrypoint and shell dependency graph before changes.
+- Confirmed Maps renderer consumes real location records and existing verification state; no synthetic trust score/evidence was introduced.
+- Confirmed Business/Admin mobile destinations are derived from the same existing user-role signals used by the modular shell.
+
+### Remaining P0 work
+
+- Complete the canonical consumer Home → map-first utility hierarchy.
+- Complete the location trust/confidence model using authoritative dataset fields rather than invented values.
+- Finish public-data ingestion/prepopulation and provenance controls.
+- Complete business CRUD/action end-to-end validation for every advanced feature.
+- Finish unified loading/error/empty behavior across every core.
+- Remove remaining monolith-style startup/global dependencies through lazy module ownership.
+- Complete device/browser regression coverage before declaring P0 complete.
+
 ## Current active audit track
 
-**Progression/Rewards authority chain:**
+**P0/P1/P2 implementation:**
 
-`user action → progression metric → progression event → point transaction → badge/streak/challenge → leaderboard/reward → profile/social/admin`
+`product hierarchy → trust/data provenance → consumer utility → business value → entitlement → CRUD/actions → analytics → cross-feature effects → mobile/accessibility → regression`
 
-Next passes must continue app-wide rather than stopping at this subsystem.
+Continue executing this track in large batches. Do not stop at recommendation-only findings.
