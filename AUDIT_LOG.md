@@ -124,13 +124,21 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Reproduced the reported failure path from the modular shell: Maps imports `cores/maps/maps-core.js` directly before creating the Maps surface.
 - Inspected the authoritative Maps Core and found extensive nested template-literal HTML generation in the route/details renderer, matching the browser's `Missing } in template expression` parse failure class.
 - Replaced the Maps Core renderer/HTML construction with syntax-safe string construction while preserving the existing module contract, GPS/discovery/cache flow, verification, engagement, routes, navigation, progression, and business module wiring.
-- Bumped the Maps Core contract to `1.7.2` and committed the fix as `f3852fee93429b75ee25bb93524c37473a83f61b`.
-- This is a P0 source-level repair; deployed/browser verification remains the final gate.
+- Bumped the Maps Core contract to `1.7.2` and committed the source repair as `f3852fee93429b75ee25bb93524c37473a83f61b`.
+
+## 2026-08-16 — P0 Maps cache/secondary renderer hardening
+
+- Audited the remaining Maps modules loaded by the shell, including discovery, routes, renderer, and navigation UI.
+- Hardened `cores/maps/maps-renderer.js` by removing nested template expressions from live navigation text formatting while preserving behavior.
+- Bumped all Maps module import cache keys in the modular shell so a browser that previously cached the broken `?core=9` module graph cannot reuse the failed parse result on Retry.
+- Advanced the Maps navigation/routing cache keys alongside the main Maps graph to keep the imported module set version-coherent.
+- New Maps graph cache versions: core/location/discovery/cache/session/catalog/verification/engagement/details/filters/renderer/routes/progression `core=10`; navigation/routing `core=8`; navigation UI `core=7`; voice `core=6`; reroute `core=7`; arrival `core=6`.
+- Source commits: renderer hardening `c27e585aad6e6c2cb2e2e9858296006449f665be`; cache-bust shell `1a4db15dc1379591d19fee57e89493ef31c77269`.
 
 ## Verification status
 
 - Static source inspection and committed implementation changes are complete for the batches above.
 - Runtime/browser end-to-end verification remains required for Business CRUD against the deployed schema/RLS contract.
 - Live Supabase SECURITY DEFINER inspection is currently connector-permission constrained and must be resumed with sufficient database inspection privileges.
-- Maps P0 parse failure is repaired in the authoritative modular source; deployed-device verification remains required.
+- Maps P0 source repair and cache-bust are complete in the authoritative modular source; deployed-device verification remains required.
 - A feature is not considered complete merely because it renders or registers; the audit requires real data mutation, authorization, side effects, and refresh behavior.
