@@ -1,19 +1,20 @@
-/* Canonical Business Tab Core v4 — one Business surface, with feature cards and Fleet layered into the same lifecycle when entitled. */
+/* Canonical Business Tab Core v5 — one Business surface, feature cards, and Fleet in the same lifecycle when entitled. */
 export function createBusinessCore({root,user=null,supabase}={}){
  if(!root)throw new Error('Business Core requires a mount root.');
  const load=src=>new Promise((resolve,reject)=>{const base=src.split('?')[0];if(document.querySelector('script[src^="'+base+'"]'))return resolve();const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=()=>reject(Error('Failed to load '+src));document.head.appendChild(s)});
+ let stopCards=null;
  async function mount(){
   root.innerHTML='<div class="kcard"><h2>Loading Business Workspace…</h2><p>Loading your business data and tools.</p></div>';
   try{
-   if(!window.KleenestBusinessWorkspaceV1)await load('kleenest-business-workspace-v1.js?business=canonical-v7');
+   if(!window.KleenestBusinessWorkspaceV1)await load('kleenest-business-workspace-v1.js?business=canonical-v8');
    if(!window.KleenestBusinessWorkspaceV1?.mount)throw Error('Canonical Business Workspace unavailable.');
    await window.KleenestBusinessWorkspaceV1.mount(root,{supabase,user});
    if(!window.KleenestBusinessGapCloserV1)await load('kleenest-business-gap-closer-v2.js?business=studio-v4');
    if(window.KleenestBusinessGapCloserV1?.enhance)await window.KleenestBusinessGapCloserV1.enhance(root);
    if(!window.KleenestBusinessStudioEntitlementGuardV1)await load('kleenest-business-studio-entitlement-guard-v1.js?business=entitlements-v2');
    if(window.KleenestBusinessStudioEntitlementGuardV1?.enforce)await window.KleenestBusinessStudioEntitlementGuardV1.enforce(root);
-   await load('kleenest-surface-card-nav-v1.js?ui=2');
-   window.KleenestSurfaceCardNavV1?.enhance(root);
+   await load('kleenest-surface-card-nav-v1.js?ui=3');
+   stopCards=window.KleenestSurfaceCardNavV1?.enhance(root)||null;
    await mountFleetIfEntitled();
   }catch(e){
    console.error('[Kleenest] Business Core',e);
@@ -30,6 +31,6 @@ export function createBusinessCore({root,user=null,supabase}={}){
   try{await window.KleenestFleetWorkspaceV1.render(host,{supabase,user});}
   catch(e){host.remove();if(!/Fleet tier entitlement required/i.test(String(e?.message||e)))console.warn('[Kleenest] Fleet surface unavailable',e)}
  }
- function destroy(){root.replaceChildren();}
- return Object.freeze({name:'business',version:'canonical-v4',mount,destroy});
+ function destroy(){stopCards?.();stopCards=null;root.replaceChildren();}
+ return Object.freeze({name:'business',version:'canonical-v5',mount,destroy});
 }
