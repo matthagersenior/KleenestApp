@@ -2,7 +2,7 @@
 import {getBusinessFeature,businessFeatureAccess} from './business-feature-registry.js';
 const SAFE_KEY=/^[a-zA-Z0-9_]+$/;
 const SYSTEM_FIELDS=new Set(['id','business_id','created_at','updated_at','created_by','updated_by']);
-const MUTABLE_KEYS=Object.freeze(['name','title','description','status','starts_at','ends_at','start_at','end_at','location_id','url','image_url','destination_url','code','discount','terms','rules','prize','max_entries','budget','audience','metadata','settings','active','enabled','scan_limit','redemption_limit']);
+const MUTABLE_KEYS=Object.freeze(['name','title','label','description','status','starts_at','ends_at','start_at','end_at','event_date','event_time','location_id','url','image_url','destination_url','code','discount','terms','rules','scoring_rules','prize','rewards','max_entries','budget','audience','metadata','settings','goal','campaign_type','purpose','action_type','action_payload','customization','active','enabled','scan_limit','redemption_limit']);
 function clean(value){if(value===undefined)return undefined;if(typeof value==='string')return value.trim().slice(0,10000);if(Array.isArray(value))return value.slice(0,500);if(value&&typeof value==='object')return value;return value}
 function pick(input){const out={};for(const key of MUTABLE_KEYS){if(Object.prototype.hasOwnProperty.call(input||{},key)){const v=clean(input[key]);if(v!==undefined)out[key]=v}}return out}
 export function createBusinessCrudCore({supabase,user=null,valueCore=null}={}){if(!supabase)throw new Error('Business CRUD Core requires Supabase.');
