@@ -121,12 +121,22 @@ For every audit pass record:
 - Replaced remaining account destructive browser confirmation in the control bridge with an in-app confirmation dialog.
 - Corrected the Business feature-gap bridge so advanced datasets require Growth/Enterprise **and** Owner/Admin/Manager; Analyst is no longer treated as a CRUD-capable advanced role.
 
+### 2026-08-16 — P0 shell hardening
+
+- Inspected the modular shell's privileged navigation and all consumer/business/admin initialization error surfaces.
+- Removed stale `KleenestBusinessState` length/current-business heuristics from Business navigation authorization; privileged navigation is now derived from the authenticated user's actual business/admin role signals.
+- Added route-level authorization guards so manually navigating to Business/Admin while unauthorized redirects to Home rather than mounting a privileged surface.
+- Replaced raw backend/internal error messages shown to consumers with safe, user-facing fallback messages while retaining detailed errors in the console for diagnostics.
+- Added retry controls to Business/Admin initialization failures.
+- Preserved real lazy loading for Social/Maps and the existing server-side permission enforcement; no client-only authorization is treated as a security boundary.
+
 ### Verification
 
 - Reviewed the modular entrypoint and shell dependency graph before changes.
 - Confirmed Maps renderer consumes real location records and existing verification/provenance fields; no synthetic trust score/evidence was introduced.
 - Confirmed Business/Admin mobile destinations are derived from the existing role signals used by the modular shell.
 - Confirmed current map ingestion already uses JWT-protected `ingest-map-candidates` and writes source provenance (`source_dataset`, `source_external_id`, `source_metadata`).
+- Reviewed the Maps core contract and verified all required modules are still initialized through the modular shell.
 
 ### Remaining P0 work
 
