@@ -21,9 +21,11 @@ export function getBusinessFeature(key){return BUSINESS_FEATURES.find(f=>f.key==
 export function businessFeatureAccess(feature,{tier='standard',role='',isAdmin=false}={}){
  const f=typeof feature==='string'?getBusinessFeature(feature):feature;
  if(!f)return {exists:false,allowed:false,advanced:false,reason:'unknown_feature'};
- if(isAdmin||['owner','admin'].includes(String(role).toLowerCase()))return {exists:true,allowed:true,advanced:f.advanced,reason:'admin'};
- const normalized=String(tier).toLowerCase();
- const advanced=['growth','enterprise'].includes(normalized);
+ const normalizedRole=String(role).toLowerCase();
+ const normalizedTier=String(tier).toLowerCase();
+ const advanced=['growth','enterprise'].includes(normalizedTier);
+ if(isAdmin)return {exists:true,allowed:true,advanced:f.advanced,reason:'admin'};
+ if(['owner','admin','manager'].includes(normalizedRole))return {exists:true,allowed:!f.advanced||advanced,advanced:f.advanced,reason:f.advanced?(advanced?'tier_enabled':'upgrade_required'):'included'};
  return {exists:true,allowed:!f.advanced||advanced,advanced:f.advanced,reason:f.advanced?(advanced?'tier_enabled':'upgrade_required'):'included'};
 }
 
