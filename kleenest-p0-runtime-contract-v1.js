@@ -1,36 +1,10 @@
 /* P0 runtime contract v1: narrow compatibility boundaries only; never replaces Supabase SDK. */
 (function(g){'use strict';
   if(g.KleenestP0RuntimeContractV1)return;
-  function normalizeLocations(value){
-    var v=value;
-    if(v&&typeof v==='object'&&!Array.isArray(v)) v=v.data??v.locations??v.rows??v.results??v.items??v;
-    return Array.isArray(v)?v:[];
-  }
-  function installBusinessRpcGuard(){
-    var s=g.KleenestSupabase;
-    if(!s||typeof s.rpc!=='function'||s.__p0RpcGuard)return false;
-    var original=s.rpc.bind(s);
-    s.rpc=function(name,args){
-      return Promise.resolve(original(name,args)).then(function(result){
-        if(String(name||'').toLowerCase()==='business_list_locations') return normalizeLocations(result);
-        return result;
-      });
-    };
-    s.__p0RpcGuard=true;
-    return true;
-  }
-  function installMapsSocialBridge(){
-    if(g.KleenestMapsSocialModuleV1)return true;
-    g.KleenestMapsSocialModuleV1={
-      initialize:async function(){},
-      destroy:function(){},
-      openLocation:async function(){return null},
-      recordMapAction:async function(){return null}
-    };
-    if(!g.KleenestSocialCoreV12)g.KleenestSocialCoreV12=g.KleenestMapsSocialModuleV1;
-    return true;
-  }
-  function install(){installBusinessRpcGuard();installMapsSocialBridge();}
-  g.KleenestP0RuntimeContractV1={install:install,normalizeLocations:normalizeLocations};
-  install();
+  function normalizeLocations(value){var v=value;if(v&&typeof v==='object'&&!Array.isArray(v))v=v.data??v.locations??v.rows??v.results??v.items??v;return Array.isArray(v)?v:[];}
+  function installBusinessRpcGuard(){var s=g.KleenestSupabase;if(!s||typeof s.rpc!=='function'||s.__p0RpcGuard)return false;var original=s.rpc.bind(s);s.rpc=function(name,args){return Promise.resolve(original(name,args)).then(function(result){if(String(name||'').toLowerCase()==='business_list_locations')return normalizeLocations(result);return result;});};s.__p0RpcGuard=true;return true;}
+  function installMapsSocialBridge(){if(!g.KleenestMapsSocialModuleV1)g.KleenestMapsSocialModuleV1={initialize:async function(){},destroy:function(){},openLocation:async function(){return null},recordMapAction:async function(){return null}};if(!g.KleenestSocialCoreV12)g.KleenestSocialCoreV12=g.KleenestMapsSocialModuleV1;return true;}
+  function installGpsGuard(){var geo=navigator.geolocation;if(!geo||geo.__kleenestGpsGuard)return;var original=geo.watchPosition.bind(geo),clear=geo.clearWatch.bind(geo),active=new Map(),next=1;geo.watchPosition=function(success,error,options){var id=next++,last=null,lastAt=0;var nativeId=original(function(pos){var c=pos&&pos.coords;if(!c)return;var now=Date.now();var moved=last?Math.hypot((c.latitude-last.lat)*111320,(c.longitude-last.lng)*111320*Math.cos(c.latitude*Math.PI/180)):Infinity;if(last&&moved<75&&(now-lastAt)<15000)return;last={lat:c.latitude,lng:c.longitude};lastAt=now;success(pos);},error,options);active.set(id,nativeId);return id;};geo.clearWatch=function(id){var nativeId=active.get(id);if(nativeId!=null){clear(nativeId);active.delete(id);}};geo.__kleenestGpsGuard=true;}
+  function install(){installBusinessRpcGuard();installMapsSocialBridge();installGpsGuard();}
+  g.KleenestP0RuntimeContractV1={install:install,normalizeLocations:normalizeLocations};install();
 })(window);
