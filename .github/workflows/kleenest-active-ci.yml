@@ -18,7 +18,7 @@ jobs:
       - name: Check canonical runtime syntax
         run: |
           set -euo pipefail
-          files=(kleenest-modular-shell-v13.js kleenest-home-core-v1.js kleenest-home-checkin-bridge-v1.js kleenest-qr.js kleenest-account-plans-v1.js kleenest-business-feature-entitlement-enforcer-v3.js kleenest-business-feature-entitlement-enforcer-v2.js kleenest-business-feature-entitlement-enforcer-v1.js kleenest-business-studio-entitlement-guard-v1.js kleenest-business-workspace-v1.js kleenest-business-gap-closer-v2.js kleenest-business-control-center-v5.js kleenest-fleet-workspace-v1.js kleenest-qr-studio-dashboard-v1.js kleenest-admin-canonical-runtime-v3.js kleenest-admin-tools-dashboard-v4.js kleenest-platform-admin-core-v4.js kleenest-data-feature-wiring-v1.js kleenest-location-contribution-bridge-v1.js kleenest-location-details-v1.js kleenest-game-engine-v1.js kleenest-rewards.js kleenest-reviews.js kleenest-promotions.js core/kleenest-tab-core-registry-v2.js cores/home/home-core.js cores/maps/maps-tab-core-v2.js cores/maps/maps-core.js cores/maps/maps-renderer-v2.js cores/business/business-core-v8.js cores/admin/admin-core.js kleenest-maps-dashboard-redesign-v3.js); for f in "${files[@]}"; do test -f "$f"; node --check "$f"; done
+          files=(kleenest-modular-shell-v13.js kleenest-home-core-v1.js kleenest-home-checkin-bridge-v1.js kleenest-qr.js kleenest-account-plans-v1.js kleenest-business-feature-entitlement-enforcer-v3.js kleenest-business-feature-entitlement-enforcer-v2.js kleenest-business-feature-entitlement-enforcer-v1.js kleenest-business-studio-entitlement-guard-v1.js kleenest-business-workspace-v1.js kleenest-business-gap-closer-v2.js kleenest-business-qr-studio-hardener-v1.js kleenest-business-control-center-v5.js kleenest-fleet-workspace-v1.js kleenest-qr-studio-dashboard-v1.js kleenest-admin-canonical-runtime-v3.js kleenest-admin-tools-dashboard-v4.js kleenest-platform-admin-core-v4.js kleenest-data-feature-wiring-v1.js kleenest-location-contribution-bridge-v1.js kleenest-location-details-v1.js kleenest-game-engine-v1.js kleenest-rewards.js kleenest-reviews.js kleenest-promotions.js core/kleenest-tab-core-registry-v2.js cores/home/home-core.js cores/maps/maps-tab-core-v2.js cores/maps/maps-core.js cores/maps/maps-renderer-v2.js cores/business/business-core-v8.js cores/admin/admin-core.js kleenest-maps-dashboard-redesign-v3.js); for f in "${files[@]}"; do test -f "$f"; node --check "$f"; done
       - name: Check known contracts
         run: |
           set -euo pipefail
@@ -52,8 +52,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'pricing_authority_v1' kleenest-account-plans-v1.js
-          grep -q "code='premium_user'" supabase/migrations/20260817170000_pricing_authority_v1.sql
-          grep -q "interval='once'" supabase/migrations/20260817170000_pricing_authority_v1.sql
+          grep -q "code='premium_user'" supabase/migrations/20260817170000_canonical_premium_user_one_time_price.sql
+          grep -q "interval='once'" supabase/migrations/20260817170000_canonical_premium_user_one_time_price.sql
       - name: Check Fleet operational contracts
         run: |
           set -euo pipefail
@@ -66,6 +66,19 @@ jobs:
           grep -q 'fleet_set_route_status' supabase/migrations/20260817183000_fleet_operational_mutations_v1.sql
           grep -q 'Fleet manager permission required' supabase/migrations/20260817183000_fleet_operational_mutations_v1.sql
           grep -q 'revoke execute on function public.fleet_actor_is_manager' supabase/migrations/20260817183000_fleet_operational_mutations_v1.sql
+      - name: Check Business QR scope and lifecycle contracts
+        run: |
+          set -euo pipefail
+          grep -q 'KleenestBusinessQRStudioHardenerV1' kleenest-business-qr-studio-hardener-v1.js
+          grep -q 'p_location_id:f.get('\''location'\'')||null' kleenest-business-qr-studio-hardener-v1.js
+          grep -q 'business_set_qr_active' kleenest-business-qr-studio-hardener-v1.js
+          grep -q 'business_delete_qr' kleenest-business-qr-studio-hardener-v1.js
+          grep -q 'business_id' supabase/migrations/20260817190000_qr_business_scope_v1.sql
+          grep -q 'p_location_id uuid' supabase/migrations/20260817190000_qr_business_scope_v1.sql
+          grep -q 'p_location_id is not null' supabase/migrations/20260817190000_qr_business_scope_v1.sql
+          grep -q 'business_id=p_business_id' supabase/migrations/20260817190000_qr_business_scope_v1.sql
+          grep -q 'qr_codes_member_advanced_all' supabase/migrations/20260817190000_qr_business_scope_v1.sql
+          grep -q 'kleenest-business-qr-studio-hardener-v1.js' cores/business/business-core-v8.js
       - name: Check Admin canonical mounts
         run: |
           set -euo pipefail
