@@ -13,7 +13,6 @@
     const detail={profile:user,transactions:result?.point_transactions||[],newBadges:result?.new_badges||[],badges:result?.badges||[],checkIn:result?.check_in||null,review:result?.review||null,redemption:result?.redemption||null,promotion:result?.promotion||null};
     window.dispatchEvent(new CustomEvent('kleenest:rewards-updated',{detail}));
     window.dispatchEvent(new CustomEvent('kleenest:'+kind+'-rewards-updated',{detail}));
-    if(typeof render==='function')render();
     return result;
   }
   async function session(){if(!window.KleenestSupabase?.client)throw new Error('Supabase is not ready.');const s=await window.KleenestSupabase.session();if(!s)throw new Error('Please sign in to continue.');return s;}
