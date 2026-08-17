@@ -85,6 +85,14 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Confirmed `index.html` loads the canonical design system before the modular shell and wires Business, Maps, Social, Progression, Home, Profile, Admin, and feature-gap bridges.
 - No speculative removal of legacy startup scripts was performed because several current modular cores still consume the corresponding runtime bridges; dependency ownership remains an active monolith-removal task.
 
+## 2026-08-16 — Business workspace hard-wiring pass
+
+- Traced modular shell → Business route → Business adapter → Business Workspace.
+- Found a real integration defect: the modular shell created a dedicated `km-business` root and passed the canonical Business Value Core, while the compatibility adapter ignored both arguments and searched for the generic `km-workspace` root.
+- Fixed the adapter to accept the shell-provided root and options and forward them to the canonical Business Workspace mount.
+- Preserved the adapter as a compatibility bridge rather than introducing another Business implementation.
+- This closes a genuine routing/wiring defect; Business advanced CRUD still requires RPC-level end-to-end verification before the P0 gate can be marked complete.
+
 ## Active P0 gates
 
 1. Harden public-data ingestion/prepopulation and abuse/rate controls.
