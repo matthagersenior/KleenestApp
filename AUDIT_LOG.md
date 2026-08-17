@@ -172,6 +172,16 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Removed the independent Maps runtime bootstrap from `index.html` and advanced the application bootstrap cache key.
 - No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
 
+## 2026-08-17 — Social Core consolidation
+
+- Audited `cores/social` against the six-tab ownership rule.
+- Found two generations of Social implementation: `social-core.js` and `social-core-v2.js`, plus the canonical `social-tab-core.js` boundary.
+- Confirmed the tab-core registry already pre-registers Social as the canonical `social-tab-core.js`, so the modular shell's legacy `once('social', ...)` path cannot replace the canonical registry entry.
+- Kept `social-core-v2.js` as the active subordinate Social implementation because it contains the richer feature set: progression metrics, likes, saves, comments, live post subscription, discovery/network/competition/messages/notifications panels, and media integration.
+- Converted `social-core.js` from a second implementation into a compatibility entrypoint that re-exports the canonical implementation instead of maintaining another Social Core body.
+- Social now has one lifecycle owner (`social-tab-core.js`) and one active feature implementation (`social-core-v2.js`); the former v1 implementation is no longer a competing surface/model.
+- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
+
 ## Verification status
 
 - Six canonical tab-core ownership is statically established.
@@ -179,7 +189,7 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Maps Core now owns the complete active Maps lifecycle rather than delegating the tab to a second runtime.
 - Maps Renderer, Discovery, Location, Cache, Routes, Navigation, Details, Verification, Engagement, and Progression are subordinate services/modules of the canonical Maps Core.
 - Duplicate Maps Discovery v2, Stable Location v1, obsolete Amenities service, unused Catalog shim, and independent Maps runtime are removed.
-- Browser/device runtime verification remains required for GPS initialization, discovery counts, refresh behavior, OSM ingestion, routing/navigation, and Maps mount/unmount.
-- Static source inspection has been repeated after the consolidation; deployed browser verification remains the final gate.
-- Remaining Maps navigation support modules are retained because they represent distinct capabilities rather than duplicate tab/service owners.
-- Business CRUD, Supabase RLS, and the remaining five tab cores are unchanged by this Maps consolidation pass.
+- Social has one lifecycle owner (`social-tab-core.js`); `social-core.js` is compatibility-only and no longer contains an alternate implementation.
+- Browser/device runtime verification remains required for Maps GPS/discovery/routing and Social rendering, realtime updates, media upload, and post mutations.
+- Static source inspection has been repeated after the Social consolidation; deployed browser verification remains the final gate.
+- Business CRUD, Supabase RLS, and the other tab-core implementations are unchanged by this Social pass.
