@@ -195,6 +195,17 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - The canonical Business Core now loads the richest existing Business Workspace implementation and its entitlement/feature-gap enhancements directly, preserving existing Business functionality while eliminating the duplicate lifecycle bridge.
 - No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
 
+## 2026-08-17 — Profile Core consolidation
+
+- Audited `cores/profile` plus the older top-level Profile implementations against the six-tab ownership rule.
+- Confirmed `cores/profile/profile-core.js` is the canonical Profile lifecycle owner and `kleenest-profile-core-v2.js` is the richer active account-management implementation.
+- Found `kleenest-profile-core-v1.js` still contained a complete independent Profile renderer, including its own profile query, progression display, account actions, and event handlers. It was not loaded by the current bootstrap, but leaving a second full implementation in the source preserved a future collision path.
+- Converted `kleenest-profile-core-v1.js` into a compatibility entrypoint that delegates to Profile Core v2 instead of maintaining a second implementation.
+- Removed the Profile Core's fallback to `KleenestCanonicalProfileCoreV2`; it now resolves the single canonical `KleenestProfileCoreV2` implementation directly.
+- Retained `kleenest-profile-connected-accounts-v1.js` as a subordinate enhancement because it augments the canonical Profile UI and does not own Profile lifecycle.
+- Advanced application and tab-core cache keys so deployed clients cannot retain the prior Profile module graph.
+- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
+
 ## Verification status
 
 - Six canonical tab-core ownership is statically established.
@@ -204,6 +215,8 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Duplicate Maps Discovery v2, Stable Location v1, obsolete Amenities service, unused Catalog shim, and independent Maps runtime are removed.
 - Social has one lifecycle owner (`social-tab-core.js`); `social-core.js` is compatibility-only and no longer contains an alternate implementation.
 - Business has one lifecycle owner (`cores/business/business-core.js`); the superseded Business tab core, workspace lifecycle adapter, and duplicate runtime bridge are removed.
+- Profile has one lifecycle owner (`cores/profile/profile-core.js`) and one active feature implementation (`kleenest-profile-core-v2.js`); the old v1 implementation is compatibility-only.
 - Business CRUD, feature registry, and value core remain subordinate services and retain their existing authorization contracts.
-- Browser/device runtime verification remains required for Maps GPS/discovery/routing, Social rendering/realtime/media/mutations, and Business workspace/CRUD/entitlement behavior.
-- Static source inspection has been repeated after the Business consolidation; deployed browser verification remains the final gate.
+- Profile connected accounts remains a subordinate enhancement, not a competing lifecycle owner.
+- Browser/device runtime verification remains required for Maps GPS/discovery/routing, Social rendering/realtime/media/mutations, Business workspace/CRUD/entitlement behavior, and Profile authentication/account mutations.
+- Static source inspection has been repeated after the Profile consolidation; deployed browser verification remains the final gate.
