@@ -128,3 +128,19 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - No changes made to active Home, Maps, Social, Profile, Business, Admin, Supabase, Auth, Rewards, Notifications, or Fleet implementations in this cleanup batch.
 - Verification: exact filename searches for removed shell/entrypoint artifacts returned no repository consumers before deletion; active `index.html` references only `kleenest-modular-shell-v13.js` and the canonical tab registry.
 - Remaining risk: non-runtime HTML snapshots and historical feature bridges still require classification; preserve any file that is serving as an explicit audit/reference artifact until that purpose is documented.
+
+## 2026-08-17 — Business canonical mutation contract pass
+
+- GitHub code-search remains unavailable for this repository, but the repository Git tree API is functioning; canonical Business source was located directly without inventing paths.
+- Confirmed the active Business Core is `cores/business/business-core-v8.js`, which mounts `kleenest-business-workspace-v1.js` and the existing Business entitlement/QR/Control Center layers.
+- Confirmed the canonical feature registry is `cores/business/business-feature-registry.js` and the subordinate CRUD service is `cores/business/business-crud-core.js`.
+- Inspected the live production `public.business_%` RPC inventory in Supabase. The database currently contains multiple overloaded Business mutation signatures, including legacy and newer authorization contracts.
+- Confirmed the active Business Workspace uses authorized Business RPCs for location, promotion, event, campaign, contest, partnership, QR, and review-reply mutations rather than inventing placeholder files.
+- Fixed a verified Partnership create mismatch: the UI previously called `business_create_partner_program` with only `p_name`; it now sends the canonical `(p_business_id,p_name)` contract.
+- Fixed a verified review-reply wiring defect: the Reply action now passes the selected review record into the modal and calls the existing `business_reply_review(p_business_id,p_review_id,p_reply)` contract.
+- Preserved the existing location update path after live signature verification showed the prior six-argument call matched a legacy overload; no database overload was deleted or replaced blindly.
+- Verified the live canonical Partnership and Review RPC definitions require authenticated business management and business ownership/authorization checks. Verified anonymous EXECUTE is denied for Business mutation RPCs.
+- No new Business implementation or compatibility overload was created.
+- Remaining P1: consolidate legacy Business RPC overloads into one authoritative signature per operation, then route the location mutation to that consolidated signature. This requires migration-level database work and regression testing rather than a client-only workaround.
+- Remaining P1: replace remaining Business Workspace browser `alert/confirm` mutation UX with the existing in-app notice/confirmation pattern.
+- Next verified sequence remains: Business CRUD parity → QR lifecycle → Fleet mutation verification → provenance/evidence integrity → gamification idempotency/cooldown/fraud controls.
