@@ -1,1 +1,0 @@
-/* Retired canonical shell v69. v70 is authoritative. */
