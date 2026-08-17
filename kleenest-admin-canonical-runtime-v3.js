@@ -1,7 +1,8 @@
-/* Admin Canonical Runtime v6 — authoritative Supabase client + protected feature-rich Admin Core v3. */
-(function(g){'use strict';if(g.KleenestAdminCanonicalRuntimeV6)return;
+/* Admin Canonical Runtime v7 — authoritative Supabase client + protected feature-rich Admin Core v3. */
+(function(g){'use strict';if(g.KleenestAdminCanonicalRuntimeV7)return;
 function client(){var s=g.KleenestSupabaseClient;if(!s||typeof s.rpc!=='function'||!s.auth)throw Error('Kleenest Supabase client unavailable');return s}
 function allowed(x){return x?.is_admin===true||['admin','owner','platform_admin','super_admin'].includes(String(x?.role||'').toLowerCase())}
+function loadCore(){if(g.KleenestPlatformAdminCoreV3)return Promise.resolve();return new Promise((resolve,reject)=>{var s=document.createElement('script');s.src='kleenest-platform-admin-core-v3.js?admin=133';s.onload=resolve;s.onerror=()=>reject(Error('Canonical Admin Core v3 failed to load.'));document.head.appendChild(s)})}
 async function resolve(){var s=client(),u=(await s.auth.getUser()).data?.user;if(!u)throw Error('Authentication required');var p=await s.from('profiles').select('id,is_admin,role,subscription_tier,is_business_user').eq('id',u.id).maybeSingle();if(p.error)throw p.error;var x=Object.assign({},u,p.data||{}),ok=allowed(x);g.KleenestAdminCanonicalState={user:x,isAdmin:ok};if(!ok)throw Error('The signed-in account is not authorized for platform administration.');return x}
-async function render(root){var x=await resolve();if(!g.KleenestPlatformAdminCoreV3)throw Error('Canonical Admin Core v3 missing');return g.KleenestPlatformAdminCoreV3.render(root,x)}
-g.KleenestAdminCanonicalRuntimeV6={render,resolve};g.KleenestAdminCanonicalRuntimeV5=g.KleenestAdminCanonicalRuntimeV6;g.KleenestAdminCanonicalRuntimeV4=g.KleenestAdminCanonicalRuntimeV6;g.KleenestAdminCanonicalRuntimeV3=g.KleenestAdminCanonicalRuntimeV6;})(window);
+async function render(root){var x=await resolve();await loadCore();return g.KleenestPlatformAdminCoreV3.render(root,x)}
+g.KleenestAdminCanonicalRuntimeV7={render,resolve};g.KleenestAdminCanonicalRuntimeV6=g.KleenestAdminCanonicalRuntimeV7;g.KleenestAdminCanonicalRuntimeV5=g.KleenestAdminCanonicalRuntimeV7;g.KleenestAdminCanonicalRuntimeV4=g.KleenestAdminCanonicalRuntimeV7;g.KleenestAdminCanonicalRuntimeV3=g.KleenestAdminCanonicalRuntimeV7;})(window);
