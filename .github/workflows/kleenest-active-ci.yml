@@ -25,3 +25,36 @@ jobs:
           ! grep -RIn --exclude-dir=.git --exclude='*.md' 'qr_codes\.business_id' .
           ! grep -RIn --include='*.js' -E 'alert\([^)]*(upgrade|premium|tier|plan|locked|requires)' kleenest-business-feature-entitlement-enforcer-v*.js
           grep -q 'refactor/monolith-removal' .github/workflows/jekyll-gh-pages.yml
+      - name: Check active HTML bootstrap
+        run: |
+          set -euo pipefail
+          test -f index.html
+          grep -q 'core/kleenest-tab-core-registry-v2.js' index.html
+          grep -q 'cores/maps/maps-tab-core-v2.js' index.html
+          grep -q 'cores/business/business-core-v8.js' index.html
+          grep -q 'cores/admin/admin-core.js' index.html
+      - name: Check Maps lifecycle contracts
+        run: |
+          set -euo pipefail
+          grep -q 'MapsCoreV6' cores/maps/maps-core.js
+          grep -q 'MapsRendererV2' cores/maps/maps-renderer-v2.js
+          grep -q 'destroy' cores/maps/maps-core.js
+          grep -q 'fitBounds' cores/maps/maps-renderer-v2.js
+      - name: Check check-in authority contracts
+        run: |
+          set -euo pipefail
+          grep -q 'verify_qr_checkin' supabase/migrations/20260817092000_harden_qr_checkin_rewards_and_geofence.sql
+          grep -q 'gps_checkin' supabase/migrations/20260817092000_harden_qr_checkin_rewards_and_geofence.sql
+          grep -q 'auth.uid()' supabase/migrations/20260817092000_harden_qr_checkin_rewards_and_geofence.sql
+      - name: Check pricing authority contracts
+        run: |
+          set -euo pipefail
+          grep -q 'pricing_authority_v1' kleenest-account-plans-v1.js
+          grep -q "code='premium_user'" supabase/migrations/20260817170000_pricing_authority_v1.sql
+          grep -q "interval='once'" supabase/migrations/20260817170000_pricing_authority_v1.sql
+      - name: Check Fleet and Admin canonical mounts
+        run: |
+          set -euo pipefail
+          grep -q 'fleet_dashboard_summary_v2' kleenest-fleet-workspace-v1.js
+          grep -q 'AdminToolsDashboardV4' kleenest-admin-tools-dashboard-v4.js
+          grep -q 'AdminToolsDashboardV4' kleenest-platform-admin-core-v4.js
