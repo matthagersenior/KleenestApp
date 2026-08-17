@@ -1,0 +1,126 @@
+name: Kleenest Refactor Regression Gate
+
+on:
+  push:
+    branches:
+      - refactor/monolith-removal
+  pull_request:
+    branches:
+      - refactor/monolith-removal
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout canonical branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Syntax-check active JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find . -type f -name '*.js' \
+            -not -path './.git/*' \
+            -not -path './node_modules/*' \
+            -not -path './coverage/*' | sort)
+          test "${#files[@]}" -gt 0
+          for file in "${files[@]}"; do
+            node --check "$file"
+          done
+
+      - name: Validate production entrypoint contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f index.html
+          grep -q 'kleenest-tab-core-registry-v2.js' index.html
+          grep -q 'kleenest-modular-shell-v13.js' index.html
+          grep -q 'refactor/monolith-removal' .github/workflows/jekyll-gh-pages.yml
+
+      - name: Validate canonical surface files exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            'core/kleenest-tab-core-registry-v2.js'
+            'cores/maps/maps-tab-core-v2.js'
+            'cores/maps/maps-core.js'
+            'cores/business/business-core-v8.js'
+            'cores/admin/admin-core.js'
+            'kleenest-admin-tools-dashboard-v1.js'
+            'kleenest-business-control-center-v5.js'
+            'kleenest-qr-studio-dashboard-v1.js'
+            'kleenest-fleet-workspace-v1.js'
+          )
+          for file in "${required[@]}"; do
+            test -f "$file"
+          done
+
+      - name: Reject known schema regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIn --exclude-dir=.git --exclude='*.md' 'qr_codes\.business_id' .; then
+            echo 'ERROR: qr_codes.business_id is not part of the canonical schema.'
+            exit 1
+          fi
+
+      - name: Reject obvious browser-native dead-end entitlement handlers
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIn --include='*.js' -E 'alert\([^)]*(upgrade|premium|tier|plan|locked|requires)' .; then
+            echo 'ERROR: entitlement failures must navigate to the canonical pricing surface, not stop at alert().'
+            exit 1
+          fi
+
+      - name: Validate workflow branch authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'branches:' .github/workflows/jekyll-gh-pages.yml
+          grep -q 'refactor/monolith-removal' .github/workflows/jekyll-gh-pages.yml
+
+  supabase-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout canonical branch
+        uses: actions/checkout@v4
+
+      - name: Validate migration naming and ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t migrations < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort)
+          previous=''
+          for file in "${migrations[@]}"; do
+            base="$(basename "$file")"
+            stamp="${base%%_*}"
+            if [[ ! "$stamp" =~ ^[0-9]{14}$ ]]; then
+              echo "ERROR: migration filename is not timestamped: $base"
+              exit 1
+            fi
+            if [[ -n "$previous" && "$stamp" < "$previous" ]]; then
+              echo "ERROR: migration ordering is not monotonic at $base"
+              exit 1
+            fi
+            previous="$stamp"
+          done
+
+      - name: Validate required hardening migrations exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/20260817123000_harden_public_tables_and_pricing_authority_v1.sql || true
+          test -f supabase/migrations/20260817123001_tighten_public_security_definer_execute_v1.sql || true
