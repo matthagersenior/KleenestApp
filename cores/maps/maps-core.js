@@ -2,6 +2,7 @@
 import { createMapsLocation } from './maps-location.js';
 import { createMapsDiscovery } from './maps-discovery.js';
 import { createMapsFilters } from './maps-filters.js';
+import { createMapsCache } from './maps-cache.js';
 import { createMapsSession } from './maps-session.js';
 import { createMapsRenderer } from './maps-renderer.js';
 import { createMapsRouting } from './maps-routing.js';
@@ -23,6 +24,7 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
  const location=createMapsLocation({onChange:next=>{if(next.position)state.position=next.position;if(next.permission)state.permission=next.permission;renderer?.updateUserPosition?.(next.position);}});
  const discovery=createMapsDiscovery({supabase:db});
  const filters=createMapsFilters({supabase:db});
+ const cache=createMapsCache({ttlMs:5*60*1000});
  const session=createMapsSession();
  const routing=await createMapsRouting();
  const routes=createMapsRoutes({supabase:db,progression,user,routing});
@@ -39,8 +41,16 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
  }
  async function refreshDiscovery(opts={}){
   const position=opts.position||state.position||location.get().position;
-  state.locations=await discovery.refresh({filters:{...state.filters,...(opts.filters||{})},position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
-  state.filters={...state.filters,...(opts.filters||{})};
+  try{
+   state.locations=await discovery.refresh({filters:{...state.filters,...(opts.filters||{})},position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
+   state.filters={...state.filters,...(opts.filters||{})};
+   cache.set(state.locations);
+  }catch(error){
+   const cached=cache.isFresh()?cache.get():null;
+   if(!Array.isArray(cached))throw error;
+   state.locations=cached;
+   console.warn('[Maps] discovery failed; using fresh cache',error);
+  }
   if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
   return state.locations;
  }
@@ -76,11 +86,11 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   root.append(controls,surface);
   root.insertAdjacentHTML('afterbegin','<style>.maps-core-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}.maps-core-controls input,.maps-core-controls select,.maps-core-controls button{border:1px solid #cfe0d9;border-radius:10px;background:#fff;padding:10px 12px;font:inherit}.maps-core-controls button{background:#0e7c6b;color:#fff;border:0;font-weight:850;cursor:pointer}.maps-core-surface{min-width:0}</style>');
   renderer=createMapsRenderer();
-  core.modules={location,discovery,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation};
+  core.modules={location,discovery,cache,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation};
   const context={core,modules:core.modules,state,user};
   await renderer.mount(surface,context);
   controls.querySelector('[data-map-locate]').onclick=()=>requestLocationAndRefresh().catch(console.error);
-  controls.querySelector('[data-map-search]').oninput=async e=>{const q=e.target.value.trim();if(!q)return refreshDiscovery();try{state.locations=await discovery.search(q,100);await renderer.refresh(context,{skipCore:true})}catch(_){refreshDiscovery()}};
+  controls.querySelector('[data-map-search]').oninput=async e=>{const q=e.target.value.trim();if(!q)return refreshDiscovery();try{state.locations=await discovery.search(q,100);cache.set(state.locations);await renderer.refresh(context,{skipCore:true})}catch(_){refreshDiscovery()}};
   controls.querySelector('[data-map-radius]').onchange=()=>refreshDiscovery({radiusMeters:Number(controls.querySelector('[data-map-radius]').value)*1609.344});
   controls.querySelector('[data-map-type]').onchange=()=>setFilters({placeType:controls.querySelector('[data-map-type]').value||undefined});
   navigationUI=createMapsNavigationUI({root,navigation});
@@ -88,7 +98,7 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   return {destroy};
  }
  function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null}
- Object.assign(core,{name:'maps',version:'4.0.0',mount,destroy,refreshDiscovery,selectLocation,openRoute,setFilters,state,modules:{location,discovery,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation}});
+ Object.assign(core,{name:'maps',version:'4.0.0',mount,destroy,refreshDiscovery,selectLocation,openRoute,setFilters,state,modules:{location,discovery,cache,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation}});
  return Object.freeze(core);
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
