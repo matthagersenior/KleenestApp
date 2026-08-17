@@ -1,21 +1,10 @@
 /* Maps Navigation UI: presentation-only consumer of Navigation Core state. */
-export function createMapsNavigationUI({root,navigation,onSpeak=()=>{}}={}){
+export function createMapsNavigationUI({root,navigation,onSpeak}={}){
  if(!root||!navigation)throw new Error('Navigation UI requires a root and navigation core.');
- let lastAnnouncementKey=null;
- let panel=root.querySelector('[data-maps-navigation-ui]');
+ const speak=onSpeak||((text)=>{try{if('speechSynthesis' in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.96;u.pitch=1;window.speechSynthesis.speak(u)}}catch(_){}});
+ let lastAnnouncementKey=null;let panel=root.querySelector('[data-maps-navigation-ui]');
  if(!panel){panel=document.createElement('div');panel.dataset.mapsNavigationUi='1';panel.className='maps-navigation-ui';root.appendChild(panel)}
- function render(state={}){
-  const m=state.maneuver;
-  const step=m?.step;
-  const distance=m?.distanceMeters;
-  const stop=state.nextStop?.locations||state.nextStop||{};
-  panel.innerHTML=`<section class="maps-nav-card" aria-live="polite"><div class="maps-nav-card__head"><span>LIVE NAVIGATION</span><strong>${state.routeCompleted?'Destination reached':state.arrived?'Stop reached':state.offRoute?(state.rerouting?'Recalculating route':'Off route'):state.active?'Following route':'Route ready'}</strong></div><div class="maps-nav-card__maneuver"><div class="maps-nav-card__icon">${escapeHtml(icon(step?.maneuver?.type,step?.maneuver?.modifier))}</div><div><small>Next maneuver</small><strong>${escapeHtml(maneuverText(step))}</strong><span>${distance==null?'':formatDistance(distance)}${step?.name?' · '+escapeHtml(step.name):''}</span></div></div><div class="maps-nav-card__progress"><span style="width:${Math.max(0,Math.min(100,(state.progress||0)*100))}%"></span></div><div class="maps-nav-card__meta"><span>${Math.round((state.progress||0)*100)}% route complete</span>${state.distanceToNextStopMeters!=null?`<span>${formatDistance(state.distanceToNextStopMeters)} to ${escapeHtml(stop.name||'next stop')}</span>`:''}</div></section>`;
-  if(step){
-   const routeKey=state.routeId||state.route?.id||state.activeRouteId||'active';
-   const announcementKey=`${routeKey}:${m.stepIndex??''}:${step.name||''}:${step.maneuver?.type||''}:${step.maneuver?.modifier||''}`;
-   if(announcementKey!==lastAnnouncementKey){lastAnnouncementKey=announcementKey;onSpeak(maneuverText(step)+(step?.name?` on ${step.name}`:''))}
-  }
- }
+ function render(state={}){const m=state.maneuver,step=m?.step,distance=m?.distanceMeters,stop=state.nextStop?.locations||state.nextStop||{};panel.innerHTML=`<section class="maps-nav-card" aria-live="polite"><div class="maps-nav-card__head"><span>LIVE NAVIGATION</span><strong>${state.routeCompleted?'Destination reached':state.arrived?'Stop reached':state.offRoute?(state.rerouting?'Recalculating route':'Off route'):state.active?'Following route':'Route ready'}</strong></div><div class="maps-nav-card__maneuver"><div class="maps-nav-card__icon">${escapeHtml(icon(step?.maneuver?.type,step?.maneuver?.modifier))}</div><div><small>Next maneuver</small><strong>${escapeHtml(maneuverText(step))}</strong><span>${distance==null?'':formatDistance(distance)}${step?.name?' · '+escapeHtml(step.name):''}</span></div></div><div class="maps-nav-card__progress"><span style="width:${Math.max(0,Math.min(100,(state.progress||0)*100))}%"></span></div><div class="maps-nav-card__meta"><span>${Math.round((state.progress||0)*100)}% route complete</span>${state.distanceToNextStopMeters!=null?`<span>${formatDistance(state.distanceToNextStopMeters)} to ${escapeHtml(stop.name||'next stop')}</span>`:''}</div></section>`;if(step){const key=`${state.routeId||state.route?.id||state.activeRouteId||'active'}:${m.stepIndex??''}:${step.name||''}:${step.maneuver?.type||''}:${step.maneuver?.modifier||''}`;if(key!==lastAnnouncementKey){lastAnnouncementKey=key;speak(maneuverText(step)+(step?.name?` on ${step.name}`:''))}}}
  function destroy(){lastAnnouncementKey=null;panel?.remove();panel=null}
  return Object.freeze({render,destroy})
 }
