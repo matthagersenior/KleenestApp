@@ -4,7 +4,7 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
  let runtime=null;
  async function ensureRuntime(){
   if(window.KleenestMapsSafeRuntimeV1?.render)return window.KleenestMapsSafeRuntimeV1;
-  await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='kleenest-maps-safe-runtime-v1.js?maps-core=15';s.onload=resolve;s.onerror=()=>reject(Error('Canonical Maps renderer failed to load.'));document.head.appendChild(s)});
+  await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='kleenest-maps-safe-runtime-v1.js?maps-core=16';s.onload=resolve;s.onerror=()=>reject(Error('Canonical Maps renderer failed to load.'));document.head.appendChild(s)});
   if(!window.KleenestMapsSafeRuntimeV1?.render)throw new Error('Canonical Maps renderer unavailable.');
   return window.KleenestMapsSafeRuntimeV1;
  }
