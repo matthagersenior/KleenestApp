@@ -144,6 +144,13 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Added runtime health exposure for the registered module set and advanced shell/module cache keys to prevent stale browser graphs.
 - During verification, found a contract gap in `core/kleenest-module-registry-v1.js`: the adapter requires `registry.get(name)` but the registry exposed no `get` method. Added the missing lookup method so registry and adapter share one contract.
 
+## 2026-08-17 — Business duplicate surface removal
+
+- Audited the Business bootstrap chain after lifecycle consolidation.
+- Found that `kleenest-business-workspace-adapter-v1.js` already dynamically loads the canonical Business Workspace plus its gap-closer and entitlement guard.
+- The bootstrap was also loading the older `kleenest-business-feature-gap-bridge-v1.js` and `kleenest-business-feature-entitlement-enforcer-v1.js`, creating a second Business feature/entitlement surface with different contracts and an independent DOM observer.
+- Removed both stale loaders from `index.html` and advanced the bootstrap cache key. The canonical Business Workspace adapter remains the single Business surface entry.
+
 ## Verification status
 
 - Static source inspection and committed implementation changes are complete for the batches above.
@@ -151,4 +158,5 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Live Supabase SECURITY DEFINER inspection is currently connector-permission constrained and must be resumed with sufficient database inspection privileges.
 - Maps P0 source repair and cache-bust are complete in the authoritative modular source; deployed-device verification remains required.
 - The canonical registry/adapter wiring is now statically contract-consistent; browser runtime verification is still required to confirm all six surfaces mount/unmount correctly through the new lifecycle path.
+- Business now has one canonical workspace loader in the modular bootstrap; deployed/browser verification is still required to confirm no feature-gap functionality was lost when the stale bridge was removed.
 - A feature is not considered complete merely because it renders or registers; the audit requires real data mutation, authorization, side effects, and refresh behavior.
