@@ -158,6 +158,7 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Removed duplicate `cores/maps/maps-discovery-v2.js`.
 - Found `maps-location-stable-v1.js` to be a thin compatibility wrapper around `maps-location.js` whose `subscribe()` intentionally did nothing; it was not part of the canonical Maps Core graph and could mask location-state updates. Removed it rather than preserving a misleading second location contract.
 - Advanced the Maps runtime cache key from `maps-core=15` to `maps-core=16` so clients cannot reuse the pre-consolidation runtime graph.
+- Simplified and syntax-hardened the canonical Maps runtime renderer after static inspection found malformed declaration/binding risks during the consolidation. The renderer now has a single explicit root, a single canonical discovery import, a single location request path, and no competing renderer generation.
 - No database schema, RLS, RPC, or authorization policy was changed in this pass.
 
 ## Verification status
@@ -167,6 +168,6 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Maps runtime now consumes the canonical Discovery service for GPS-based nearby data instead of maintaining a second direct-query discovery path.
 - Duplicate Maps Discovery v2 and Stable Location v1 implementations are removed.
 - Browser/device runtime verification remains required for GPS initialization, discovery counts, refresh behavior, OSM ingestion, and Maps mount/unmount.
-- Runtime syntax should be verified in a browser/device before considering this pass fully closed.
+- Static source verification has been repeated after the runtime renderer hardening; deployed browser verification remains the final gate.
 - Remaining Maps supporting modules must be dependency-traced before deletion; they are not automatically duplicates merely because they are separate files.
 - Business CRUD, Supabase RLS, and the remaining five tab cores are unchanged by this Maps consolidation pass.
