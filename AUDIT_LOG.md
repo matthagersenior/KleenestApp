@@ -112,17 +112,25 @@ For every audit pass record:
 - Improved Maps location trust presentation: explicit Verified / Community confirmed / Listed · verify states, accessible result labels, real loading skeletons, and useful empty/error copy.
 - Added an app description meta tag and mobile viewport-fit handling.
 
+### P0 implementation pass — consumer utility + trust
+
+- Added `kleenest-home-priority-bridge-v1.js` and wired it into the entrypoint so the first post-hero action is explicitly the real live Maps discovery flow.
+- Added `cores/maps/maps-trust.js`, deriving a deterministic 0–100 trust confidence from existing authoritative location fields only: verification status, provenance/source, verification counts, community positive/negative evidence, rating/review count, and freshness.
+- Wired trust confidence into real map markers/popups/list rows; no synthetic location evidence is created.
+- Standardized trust presentation as `Highly trusted`, `Trusted`, `Community signal`, or `Needs verification` with the numeric confidence exposed to users.
+- Replaced remaining account destructive browser confirmation in the control bridge with an in-app confirmation dialog.
+- Corrected the Business feature-gap bridge so advanced datasets require Growth/Enterprise **and** Owner/Admin/Manager; Analyst is no longer treated as a CRUD-capable advanced role.
+
 ### Verification
 
 - Reviewed the modular entrypoint and shell dependency graph before changes.
-- Confirmed Maps renderer consumes real location records and existing verification state; no synthetic trust score/evidence was introduced.
-- Confirmed Business/Admin mobile destinations are derived from the same existing user-role signals used by the modular shell.
+- Confirmed Maps renderer consumes real location records and existing verification/provenance fields; no synthetic trust score/evidence was introduced.
+- Confirmed Business/Admin mobile destinations are derived from the existing role signals used by the modular shell.
+- Confirmed current map ingestion already uses JWT-protected `ingest-map-candidates` and writes source provenance (`source_dataset`, `source_external_id`, `source_metadata`).
 
 ### Remaining P0 work
 
-- Complete the canonical consumer Home → map-first utility hierarchy.
-- Complete the location trust/confidence model using authoritative dataset fields rather than invented values.
-- Finish public-data ingestion/prepopulation and provenance controls.
+- Finish public-data ingestion/prepopulation and provenance controls, including abuse/rate controls around client-triggered ingestion.
 - Complete business CRUD/action end-to-end validation for every advanced feature.
 - Finish unified loading/error/empty behavior across every core.
 - Remove remaining monolith-style startup/global dependencies through lazy module ownership.
