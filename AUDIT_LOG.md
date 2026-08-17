@@ -116,3 +116,15 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Confirmed Fleet is a Business/enterprise capability, not a seventh tab. Fleet workspace buttons previously referenced obsolete `KleenestModularShellV11`; they now route through canonical `KleenestModularShellV13`.
 - No Supabase schema/RLS/RPC authorization changes made in this pass.
 - Remaining risk: many historical v1/v2/v3 files remain in the repository as reference/compatibility artifacts; each must be classified by actual bootstrap/consumer reachability before deletion.
+
+## 2026-08-17 — Historical shell / entrypoint orphan cleanup
+
+- Inspected the actual `index.html` bootstrap and confirmed the active shell is `kleenest-modular-shell-v13.js`; the bootstrap does not load the older app-shell generations or modular-shell v1–v12.
+- Confirmed the active Home implementation is intentionally named `kleenest-home-core-v1.js` despite its internal canonical Home Core v3 label; it remains actively loaded and was preserved.
+- Confirmed `index.html` is the authoritative bootstrap on this branch; the large `index-fixed.html`, `index2.html`, `index5.html`, `index6.html`, `index7.html`, `Index3.html`, `Index4.html`, and `Kleenest_index_pass3.html` artifacts were not treated as runtime entrypoints in this pass.
+- Removed orphaned historical app-shell generations: `kleenest-app-shell.js`, v40, v48, v63, v66, v67, v68, v69, v70, v72, and v73.
+- Removed obsolete modular shell generations v1 through v12; v13 remains the canonical shell.
+- Removed orphaned `kleenest-modular-entry.js` and `kleenest-modular-entry-v31.js`; the active bootstrap loads the canonical tab registry/shell directly.
+- No changes made to active Home, Maps, Social, Profile, Business, Admin, Supabase, Auth, Rewards, Notifications, or Fleet implementations in this cleanup batch.
+- Verification: exact filename searches for removed shell/entrypoint artifacts returned no repository consumers before deletion; active `index.html` references only `kleenest-modular-shell-v13.js` and the canonical tab registry.
+- Remaining risk: non-runtime HTML snapshots and historical feature bridges still require classification; preserve any file that is serving as an explicit audit/reference artifact until that purpose is documented.
