@@ -1,2 +1,11 @@
-/* Canonical Maps Tab Core entrypoint. Maps Core owns the tab; renderer/runtime is subordinate. */
-export {createMapsCore} from './maps-core.js';
+/* Canonical Maps Tab Core entrypoint. Maps Core owns the tab; renderer/runtime/UI enhancers are subordinate. */
+export async function createMapsCore(options={}){
+ const mod=await import('./maps-core.js?maps-core=6');
+ const core=await mod.createMapsCore(options);
+ let stopEnhancer=null;
+ const ui=await import('./maps-surface-enhancer-v1.js?maps-ui=2');
+ const originalMount=core.mount,originalDestroy=core.destroy;
+ core.mount=async()=>{const result=await originalMount();stopEnhancer=ui.enhanceMapsSurface(options.root,core)||null;return result};
+ core.destroy=()=>{stopEnhancer?.();stopEnhancer=null;return originalDestroy()};
+ return core;
+}
