@@ -206,17 +206,33 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Advanced application and tab-core cache keys so deployed clients cannot retain the prior Profile module graph.
 - No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
 
+## 2026-08-17 — Cross-tab lifecycle/bridge consolidation
+
+- Audited the canonical tab registry, modular shell, bootstrap, and cross-tab bridge files after all six tab cores were established.
+- Found that `kleenest-modular-shell-v13.js` still contained six legacy per-tab implementations (`home`, `maps`, `social`, `profile`, `businessSurface`, `adminSurface`) plus a second `KleenestModuleAdapterV1` registration path. Although the canonical tab registry had precedence, the dead implementations remained a parallel lifecycle graph and could be reactivated by future changes.
+- Reworked the shell so `KleenestTabCoreRegistryV1.mount()` is the only tab mount path. The shell no longer renders, imports, or registers individual tab implementations itself.
+- Preserved shell responsibilities for navigation, authentication hydration, entitlement visibility, error/retry UI, and cleanup while moving lifecycle ownership entirely into the six tab cores.
+- Removed `core/kleenest-module-adapter-v1.js` after code-search found no remaining consumers. The tab-core registry now directly owns tab lifecycle registration and mounting.
+- Removed `core/kleenest-surface-bridge-v1.js` after code-search found no remaining consumers. It was an unused second surface-mount abstraction.
+- Audited legacy Business bootstrap layers. `kleenest-business.js` exposed an unused `KleenestBusinessData` global and `kleenest-business-management.js` exposed a second direct-RPC `KleenestBusinessManagement` mutation layer; repository code search found no consumers of either global and the canonical Business Workspace/CRUD Core do not depend on them.
+- Removed both legacy Business data/management bridges from the source and bootstrap. Business Analytics remains loaded because the canonical Business Workspace consumes its analytics contract.
+- Advanced bootstrap/cache keys to `130` and removed the obsolete adapter bootstrap import.
+- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
+
 ## Verification status
 
 - Six canonical tab-core ownership is statically established.
+- The modular shell now has exactly one tab lifecycle path: `KleenestTabCoreRegistryV1.mount()`.
 - Maps now has one canonical tab core and one canonical discovery implementation.
 - Maps Core now owns the complete active Maps lifecycle rather than delegating the tab to a second runtime.
 - Maps Renderer, Discovery, Location, Cache, Routes, Navigation, Details, Verification, Engagement, and Progression are subordinate services/modules of the canonical Maps Core.
 - Duplicate Maps Discovery v2, Stable Location v1, obsolete Amenities service, unused Catalog shim, and independent Maps runtime are removed.
 - Social has one lifecycle owner (`social-tab-core.js`); `social-core.js` is compatibility-only and no longer contains an alternate implementation.
-- Business has one lifecycle owner (`cores/business/business-core.js`); the superseded Business tab core, workspace lifecycle adapter, and duplicate runtime bridge are removed.
+- Business has one lifecycle owner (`cores/business/business-core.js`); the superseded Business tab core, workspace lifecycle adapter, duplicate runtime bridge, legacy data bridge, and legacy management bridge are removed.
 - Profile has one lifecycle owner (`cores/profile/profile-core.js`) and one active feature implementation (`kleenest-profile-core-v2.js`); the old v1 implementation is compatibility-only.
-- Business CRUD, feature registry, and value core remain subordinate services and retain their existing authorization contracts.
+- Admin has one lifecycle owner (`cores/admin/admin-core.js`) and one canonical runtime chain.
+- The obsolete generic surface bridge and module adapter are removed; no known consumers remain.
+- Business CRUD, feature registry, analytics, and value core remain subordinate services and retain their existing authorization contracts.
 - Profile connected accounts remains a subordinate enhancement, not a competing lifecycle owner.
-- Browser/device runtime verification remains required for Maps GPS/discovery/routing, Social rendering/realtime/media/mutations, Business workspace/CRUD/entitlement behavior, and Profile authentication/account mutations.
-- Static source inspection has been repeated after the Profile consolidation; deployed browser verification remains the final gate.
+- Browser/device runtime verification remains required for Maps GPS/discovery/routing, Social rendering/realtime/media/mutations, Business workspace/CRUD/entitlement behavior, Profile authentication/account mutations, and Admin protected CRUD.
+- Static source inspection has been repeated after the cross-tab consolidation; deployed browser verification remains the final gate.
