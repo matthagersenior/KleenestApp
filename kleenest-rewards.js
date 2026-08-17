@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   window.KleenestRewards = window.KleenestRewards || {};
+  let gameAwardPromise=null;
   function applyProfile(profile, session) {
     const user={id:session.user.id,points:Number(profile?.points||0),level:Number(profile?.level||1),streak:Number(profile?.streak||0),totalCheckIns:Number(profile?.total_check_ins||0),totalReviews:Number(profile?.total_reviews||0),source:'supabase'};
     if(window.KleenestRuntime) window.KleenestRuntime.user=Object.assign({},window.KleenestRuntime.user||{},user);
@@ -18,12 +19,9 @@
   async function session(){if(!window.KleenestSupabase?.client)throw new Error('Supabase is not ready.');const s=await window.KleenestSupabase.session();if(!s)throw new Error('Please sign in to continue.');return s;}
   window.KleenestRewards.lastCheckIn=function(){try{return JSON.parse(sessionStorage.getItem('kleenest:last-checkin')||'null');}catch(_){return null;}};
   window.KleenestRewards.award=async function(points,kind,reference){
-    const s=await session();
-    const action=kind==='game'?'game_play':String(kind||'game_play');
-    const {data,error}=await window.KleenestSupabase.client().rpc('record_progression_action',{p_action:action,p_reference_id:null});
-    if(error)throw error;
-    const result=data||{};
-    return publish('game',result,s);
+    if(kind==='game'&&gameAwardPromise)return gameAwardPromise;
+    const run=(async()=>{const s=await session();const action=kind==='game'?'game_play':String(kind||'game_play');const {data,error}=await window.KleenestSupabase.client().rpc('record_progression_action',{p_action:action,p_reference_id:null});if(error)throw error;return publish('game',data||{},s)})();
+    if(kind==='game'){gameAwardPromise=run;try{return await run}finally{gameAwardPromise=null}}return run;
   };
   window.KleenestRewards.syncCheckin=async function(checkinId){
     if(!checkinId)throw new Error('A check-in ID is required.');const s=await session();
