@@ -8,7 +8,7 @@
 - Cross-reference UI → handler → module/core → RPC/API → authorization → dataset → side effects → analytics/UI refresh.
 - Fix verified defects immediately when safe.
 - Do not add placeholders or fake wiring.
-- Do not merge `main` into the modular branch during this audit.
+- Do not merge `main` into `refactor/monolith-removal` during this audit.
 - Classify datasets as CRUD, controlled-action, read-only, derived/internal, or orphan/needs-authority-review.
 - Preserve protected permission/entitlement boundaries.
 - Reuse the strongest existing Kleenest design language app-wide.
@@ -154,20 +154,32 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Audited `cores/maps` after establishing the single Maps tab-core boundary.
 - Found two competing Discovery implementations: `maps-discovery.js` and `maps-discovery-v2.js`. The canonical Maps runtime was not actually importing either implementation before this pass; it was directly querying `locations`.
 - Kept `maps-discovery.js` as the canonical Discovery service because it contains the authoritative enriched nearby RPC, public-data ingestion retry, database fallback, OSM/Overpass enrichment, deduplication, and filter pipeline.
-- Rewired `kleenest-maps-safe-runtime-v1.js` to dynamically load the canonical `maps-discovery.js` and use it for GPS-based nearby loading, radius refreshes, and amenity filters, with the direct database query retained only as a fallback if the module cannot load.
+- Rewired the prior Maps runtime to use the canonical Discovery service before subsequently removing that runtime as an independent implementation.
 - Removed duplicate `cores/maps/maps-discovery-v2.js`.
 - Found `maps-location-stable-v1.js` to be a thin compatibility wrapper around `maps-location.js` whose `subscribe()` intentionally did nothing; it was not part of the canonical Maps Core graph and could mask location-state updates. Removed it rather than preserving a misleading second location contract.
-- Advanced the Maps runtime cache key from `maps-core=15` to `maps-core=16` so clients cannot reuse the pre-consolidation runtime graph.
-- Simplified and syntax-hardened the canonical Maps runtime renderer after static inspection found malformed declaration/binding risks during the consolidation. The renderer now has a single explicit root, a single canonical discovery import, a single location request path, and no competing renderer generation.
-- No database schema, RLS, RPC, or authorization policy was changed in this pass.
+- Removed the obsolete top-level `kleenest-maps-safe-runtime-v1.js` after moving its active lifecycle/rendering responsibilities into Maps Core and its subordinate renderer.
+- Removed `cores/maps/maps-amenities.js` after repository-wide search found no consumer; its `get_location_details` responsibility is already owned by `maps-details.js`.
+- Removed `cores/maps/maps-catalog.js` after repository-wide search found no consumer.
+
+## 2026-08-17 — Maps Core v4 consolidation
+
+- Rebuilt `cores/maps/maps-core.js` as the actual orchestrator rather than a loader for a competing runtime.
+- Maps Core now directly owns Location, Discovery, Filters, Cache, Session, Renderer, Routing, Routes, Progression, Engagement, Verification, Details, Navigation, and Navigation UI lifecycle.
+- Added a single Leaflet initialization path owned by Maps Core.
+- Added explicit Maps-tab mount and destroy behavior; supporting modules cannot replace the application root.
+- Restored the durable Maps cache as a subordinate service of the canonical core; successful discovery refreshes populate it and discovery failures can use only a fresh cache.
+- Wired renderer refreshes through an explicit `skipCore` boundary to prevent recursive core/renderer refresh calls.
+- Removed the independent Maps runtime bootstrap from `index.html` and advanced the application bootstrap cache key.
+- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
 
 ## Verification status
 
 - Six canonical tab-core ownership is statically established.
 - Maps now has one canonical tab core and one canonical discovery implementation.
-- Maps runtime now consumes the canonical Discovery service for GPS-based nearby data instead of maintaining a second direct-query discovery path.
-- Duplicate Maps Discovery v2 and Stable Location v1 implementations are removed.
-- Browser/device runtime verification remains required for GPS initialization, discovery counts, refresh behavior, OSM ingestion, and Maps mount/unmount.
-- Static source verification has been repeated after the runtime renderer hardening; deployed browser verification remains the final gate.
-- Remaining Maps supporting modules must be dependency-traced before deletion; they are not automatically duplicates merely because they are separate files.
+- Maps Core now owns the complete active Maps lifecycle rather than delegating the tab to a second runtime.
+- Maps Renderer, Discovery, Location, Cache, Routes, Navigation, Details, Verification, Engagement, and Progression are subordinate services/modules of the canonical Maps Core.
+- Duplicate Maps Discovery v2, Stable Location v1, obsolete Amenities service, unused Catalog shim, and independent Maps runtime are removed.
+- Browser/device runtime verification remains required for GPS initialization, discovery counts, refresh behavior, OSM ingestion, routing/navigation, and Maps mount/unmount.
+- Static source inspection has been repeated after the consolidation; deployed browser verification remains the final gate.
+- Remaining Maps navigation support modules are retained because they represent distinct capabilities rather than duplicate tab/service owners.
 - Business CRUD, Supabase RLS, and the remaining five tab cores are unchanged by this Maps consolidation pass.
