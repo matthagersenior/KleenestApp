@@ -142,6 +142,7 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Routed Home, Maps, Social, Profile, Business, and Admin through the single registry/adapter mount path in `kleenest-modular-shell-v13.js` instead of having the shell directly invoke each surface as its lifecycle boundary.
 - Preserved the existing canonical feature cores and entitlement checks; this pass changes lifecycle ownership, not feature behavior or authorization policy.
 - Added runtime health exposure for the registered module set and advanced shell/module cache keys to prevent stale browser graphs.
+- During verification, found a contract gap in `core/kleenest-module-registry-v1.js`: the adapter requires `registry.get(name)` but the registry exposed no `get` method. Added the missing lookup method so registry and adapter share one contract.
 
 ## Verification status
 
@@ -149,5 +150,5 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Runtime/browser end-to-end verification remains required for Business CRUD against the deployed schema/RLS contract.
 - Live Supabase SECURITY DEFINER inspection is currently connector-permission constrained and must be resumed with sufficient database inspection privileges.
 - Maps P0 source repair and cache-bust are complete in the authoritative modular source; deployed-device verification remains required.
-- The canonical registry/adapter wiring has been statically verified; browser runtime verification is still required to confirm all six surfaces mount/unmount correctly through the new lifecycle path.
+- The canonical registry/adapter wiring is now statically contract-consistent; browser runtime verification is still required to confirm all six surfaces mount/unmount correctly through the new lifecycle path.
 - A feature is not considered complete merely because it renders or registers; the audit requires real data mutation, authorization, side effects, and refresh behavior.
