@@ -16,14 +16,7 @@
 
 ## Recurring pass format
 
-For every audit pass record:
-1. Date/time
-2. Branch/commit
-3. Areas inspected
-4. Findings
-5. Fixes applied
-6. Verification performed
-7. Remaining risks/gaps
+For every audit pass record: date/time, branch/commit, areas inspected, findings, fixes applied, verification performed, remaining risks/gaps.
 
 ## 2026-08-16 — Initial master audit
 
@@ -79,76 +72,38 @@ For every audit pass record:
 - Removed client execution of internal reward/analytics/maintenance SECURITY DEFINER RPCs.
 - Restricted anonymous access to user reward history and legacy business metric/review RPCs.
 
-## 2026-08-16 — Business feature permission matrix
+## 2026-08-16 — P0/P1/P2 hardening pass
 
-- Normalized advanced-tier authorization across campaigns, events, contests, promotions, and QR CRUD.
-- Standard-tier businesses remain limited to basic capabilities.
-- Hardened contest entries and promotion redemptions against inactive/expired records.
-- Hardened event RSVP creation against invalid event status.
-- Removed duplicate favorites RLS policy.
+- Established P0/P1/P2 as implementation gates rather than a recommendation backlog.
+- Added canonical design-system tokens for brand, surfaces, typography, spacing, focus states, trust states, skeletons, empty states, and primary/secondary actions.
+- Wired the modular shell to the canonical design-system token names instead of maintaining a separate color/radius vocabulary.
+- Corrected modular shell async rendering so route-specific cores are awaited before final binding.
+- Confirmed no repository hits for placeholder/TODO/FIXME markers in the audited search surface.
+- Confirmed no repository hits for browser `alert`, `confirm`, or `prompt` in the audited search surface.
+- Confirmed no repository hits for direct `console.log` calls in the audited search surface.
+- Inspected CI: Supabase frontend integration remains a main-branch legacy injection workflow and is not part of the modular branch runtime; it remains a P0 architectural risk because it can reintroduce legacy script wiring when applied to main.
+- Confirmed `index.html` loads the canonical design system before the modular shell and wires Business, Maps, Social, Progression, Home, Profile, Admin, and feature-gap bridges.
+- No speculative removal of legacy startup scripts was performed because several current modular cores still consume the corresponding runtime bridges; dependency ownership remains an active monolith-removal task.
 
-## 2026-08-16 — Progression feature-gap closure
+## Active P0 gates
 
-- Hardened progression metric event writes against client-supplied system events.
-- Added the real progression challenge completion authority:
-  - validates authentication, enabled challenge, membership, and target
-  - marks completion once
-  - awards the configured challenge reward through the canonical gamification/point path
-  - remains idempotent on repeated completion attempts
-- Added `cores/progression/progression-challenges-core.js` with real Supabase-backed challenge loading/join/completion behavior.
-- Added `kleenest-progression-challenges-bridge-v1.js` and loaded it from the modular bootstrap so the Social → Compete surface now consumes the production challenge dataset rather than merely listing it.
-- Added app-wide styling for the challenge cards using the existing Kleenest visual language.
-- Enforced one challenge entry per user/challenge and blocked client mutation of `completed_at`.
-- Added an Admin Community → Progression bridge exposing actions, games, challenges, challenge entries, badges, and streaks through the existing protected Data & CRUD surface.
+1. Harden public-data ingestion/prepopulation and abuse/rate controls.
+2. Validate every Business advanced CRUD/action path end-to-end.
+3. Finish unified loading/error/empty behavior across all cores.
+4. Continue removing monolith-style startup/global dependencies through explicit/lazy ownership.
+5. Complete browser/device regression coverage.
 
-## 2026-08-16 — P0/P1/P2 implementation program started
+## Active P1/P2 implementation queue
 
-### P0 — productization foundation
+- Clean Route productization.
+- Kleenest Score and Location Health shared trust/intelligence model.
+- QR attribution and business conversion reporting.
+- Accessibility intelligence and filters.
+- Admin data-integrity/verification operations.
+- Abuse/reward protection.
+- Notification center and richer account/history surfaces.
+- Deeper social, games, partner marketplace, enterprise APIs, and fleet intelligence.
 
-- Added `kleenest-design-system-v1.css` as the canonical shared visual token/state layer: brand colors, surfaces, spacing, radii, shadows, trust badges, skeletons, empty states, actions, and focus behavior.
-- Wired the design system into the modular entrypoint.
-- Added mobile-first consumer navigation with Home, Maps, Social, Profile and contextually authorized Business/Admin destinations.
-- Added safe-area handling and responsive five-item navigation when a privileged destination is present.
-- Improved Maps location trust presentation: explicit Verified / Community confirmed / Listed · verify states, accessible result labels, real loading skeletons, and useful empty/error copy.
-- Added an app description meta tag and mobile viewport-fit handling.
+## Completion rule
 
-### P0 implementation pass — consumer utility + trust
-
-- Added `kleenest-home-priority-bridge-v1.js` and wired it into the entrypoint so the first post-hero action is explicitly the real live Maps discovery flow.
-- Added `cores/maps/maps-trust.js`, deriving a deterministic 0–100 trust confidence from existing authoritative location fields only: verification status, provenance/source, verification counts, community positive/negative evidence, rating/review count, and freshness.
-- Wired trust confidence into real map markers/popups/list rows; no synthetic location evidence is created.
-- Standardized trust presentation as `Highly trusted`, `Trusted`, `Community signal`, or `Needs verification` with the numeric confidence exposed to users.
-- Replaced remaining account destructive browser confirmation in the control bridge with an in-app confirmation dialog.
-- Corrected the Business feature-gap bridge so advanced datasets require Growth/Enterprise **and** Owner/Admin/Manager; Analyst is no longer treated as a CRUD-capable advanced role.
-
-### Verification
-
-- Reviewed the modular entrypoint and shell dependency graph before changes.
-- Confirmed Maps renderer consumes real location records and existing verification/provenance fields; no synthetic trust score/evidence was introduced.
-- Confirmed Business/Admin mobile destinations are derived from the existing role signals used by the modular shell.
-- Confirmed current map ingestion already uses JWT-protected `ingest-map-candidates` and writes source provenance (`source_dataset`, `source_external_id`, `source_metadata`).
-
-### Remaining P0 work
-
-- Finish public-data ingestion/prepopulation and provenance controls, including abuse/rate controls around client-triggered ingestion.
-- Complete business CRUD/action end-to-end validation for every advanced feature.
-- Finish unified loading/error/empty behavior across every core.
-- Remove remaining monolith-style startup/global dependencies through lazy module ownership.
-- Complete device/browser regression coverage before declaring P0 complete.
-
-## 2026-08-16 — P0 consumer hierarchy refinement
-
-- Audited the canonical Home Core against the product hierarchy established in the master assessment.
-- Confirmed the Home priority bridge uses the real Maps navigation path and does not create a fake discovery surface.
-- Reordered the rendered Home sections so the consumer utility flow is structurally prioritized: restroom discovery → quick actions/activity → local discovery → challenges/contests/rankings → games → collection/progression.
-- Kept all underlying datasets and actions intact; this was a hierarchy/wiring correction rather than a feature removal.
-- Preserved mobile responsive behavior and the existing Kleenest visual language.
-- Commit: `0f4c1fc4b56d63045e8f2b6b6fd238ec66759ee0`.
-
-### Current active audit track
-
-**P0/P1/P2 implementation:**
-
-`product hierarchy → trust/data provenance → consumer utility → business value → entitlement → CRUD/actions → analytics → cross-feature effects → mobile/accessibility → regression`
-
-Continue executing this track in large batches. Do not stop at recommendation-only findings.
+P0/P1/P2 items are only marked complete after real data → backend/RPC → authorization → state → UI → action/CRUD → side effects → analytics → loading/error/empty → mobile/accessibility → regression verification has been traced and verified. A visible control without real persistence and downstream wiring is incomplete.
