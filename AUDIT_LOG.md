@@ -144,3 +144,21 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Remaining P1: consolidate legacy Business RPC overloads into one authoritative signature per operation, then route the location mutation to that consolidated signature. This requires migration-level database work and regression testing rather than a client-only workaround.
 - Remaining P1: replace remaining Business Workspace browser `alert/confirm` mutation UX with the existing in-app notice/confirmation pattern.
 - Next verified sequence remains: Business CRUD parity → QR lifecycle → Fleet mutation verification → provenance/evidence integrity → gamification idempotency/cooldown/fraud controls.
+
+## 2026-08-17 — Maps provenance, discovery, and entitlement hardening
+
+- Hardened public Maps read RPCs `nearby_locations()` and `nearby_locations_enriched()` to `SECURITY INVOKER` while preserving anonymous/authenticated read access and existing RLS behavior.
+- Pinned `kleenest_location_confidence(uuid)` to `search_path = ''`; retained its read-only/invoker contract and verified the mutable-search-path finding cleared.
+- Removed anonymous EXECUTE from protected provenance mutation RPCs; authenticated execution remains where required by the product contract.
+- Removed direct API mutation privileges from protected provenance tables including `location_verification_points`, `location_bathroom_verifications`, `location_amenity_observations`, `external_location_records`, and `location_amenities`.
+- Removed direct `anon`/`authenticated` location-row mutation from `locations`; business location changes remain behind authorized Business RPCs. Removed unnecessary API mutation grants from the read-only `amenities` table.
+- Verified `locations` triggers only maintain derived geometry/timestamps; verification/provenance/confidence authority remains in the intended RPCs/triggers.
+- Verified OSM ingestion persisted external evidence but did not previously invoke `apply_external_amenity_to_location()`; updated the server-side ingestion authority so external observations are materialized into canonical amenity state through the existing authority.
+- Verified `location_observation_votes` remains an authenticated, user-owned RLS mutation surface because no canonical vote RPC or active consumer was established; no speculative replacement was introduced.
+- Fixed Maps Premium boundary in active `cores/maps/maps-core.js`: `startNavigation()` now fails closed unless `advanced_routes` is explicitly entitled or the profile tier is premium/family/fleet/enterprise. Free users retain map, basic filters, results, details, and route planning.
+- Fixed active Maps discovery fallback in `cores/maps/maps-discovery-v3.js`: when device coordinates exist, the database fallback now uses the same bounded `nearby_locations_enriched` geographic contract instead of unrestricted `locations.select('*')`, preventing arbitrary distant rows from entering a nearby map.
+- Verified active `cores/maps/maps-renderer-v2.js` consumes only `state.locations`, validates coordinates, and creates no demo-account dataset or alternate population source.
+- Verified the canonical Maps Tab Core directly imports `maps-core.js`, `maps-surface-enhancer-v4.js`, verification UI, and action-capabilities UI. The previously assumed `kleenest-maps-dashboard-redesign-v3.js` is not the active surface path; no speculative file was created or modified.
+- Verified `index.html` loads the canonical tab registry, and `core/kleenest-tab-core-registry-v2.js` maps the Maps tab to `cores/maps/maps-tab-core-v2.js`; `main` was not used.
+- Verification: live Supabase function/grant/RLS inspection and direct repository-tree/file inspection on `refactor/monolith-removal`; no placeholder implementation or guessed filename introduced.
+- Remaining P1: exercise the complete live Maps chain in a browser/runtime environment with actual coordinates and a fresh session: nearby RPC → persisted DB → live OSM ingestion → canonical amenity materialization → renderer. The code path is wired and the database authority is verified, but runtime visual verification still requires an executable browser session.
