@@ -50,13 +50,16 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
      state.locations=Array.isArray(cached)?cached:[];
     }else{
      state.locations=await discovery.refresh({filters:effectiveFilters,position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
+     if(!mounted)return state.locations;
      lastDiscoveryPosition=position;
      cache.set(state.locations);
     }
+    if(!mounted)return state.locations;
     state.filters=effectiveFilters;
     if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
     return state.locations;
    }catch(error){
+    if(!mounted)return state.locations;
     const cached=cache.isFresh()?cache.get():null;
     if(!Array.isArray(cached))throw error;
     state.locations=cached;
@@ -74,29 +77,34 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
  }
  async function requestLocationAndRefresh(){
   try{await location.request()}catch(_){}
+  if(!mounted)return[];
   const position=location.get().position;
   state.position=position;
   await refreshDiscovery({position,recenter:true});
  }
  async function selectLocation(id){
+  if(!mounted)return null;
   state.selectedLocationId=id;
   const result=await details.open(id,{state,user});
+  if(!mounted)return result;
   let panel=root.querySelector('[data-map-details]');
   if(!panel){panel=document.createElement('section');panel.dataset.mapDetails='1';panel.className='maps-details-card';root.appendChild(panel)}
   panel.innerHTML='<strong>'+escapeHtml(result.location.name||'Kleenest location')+'</strong><span>'+escapeHtml(result.location.address||result.location.city||'')+'</span><small>'+escapeHtml(result.external?'Public-source location':'Kleenest location')+'</small>';
   return result;
  }
  async function openRoute(){
+  if(!mounted)return null;
   const selected=state.locations.find(x=>String(x.id)===String(state.selectedLocationId));
   if(!selected)return null;
   try{await routes.addLocation(selected.id);return routes.getActive()}catch(e){console.warn('[Maps] route action failed',e);return null}
  }
- function setFilters(next={}){state.filters=filters.apply(next);return refreshDiscovery({filters:state.filters});}
+ function setFilters(next={}){if(!mounted)return Promise.resolve([]);state.filters=filters.apply(next);return refreshDiscovery({filters:state.filters});}
  async function mount(){
   if(mounted)return {destroy};
   mounted=true;
   root.replaceChildren();
   await ensureLeaflet();
+  if(!mounted)return {destroy};
   const controls=document.createElement('section');
   controls.className='maps-core-controls';
   controls.innerHTML='<button type="button" data-map-locate>Use my location</button><input data-map-search placeholder="Search nearby places"><select data-map-radius><option value="2">2 mi</option><option value="5">5 mi</option><option value="10" selected>10 mi</option><option value="25">25 mi</option></select><select data-map-type><option value="">All locations</option><option value="restroom">Bathroom verified</option><option value="public">Public data</option></select>';
@@ -107,8 +115,9 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   core.modules={location,discovery,cache,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation};
   const context={core,modules:core.modules,state,user};
   await renderer.mount(surface,context);
+  if(!mounted){renderer?.destroy?.();renderer=null;return {destroy};}
   controls.querySelector('[data-map-locate]').onclick=()=>requestLocationAndRefresh().catch(console.error);
-  controls.querySelector('[data-map-search]').oninput=async e=>{const q=e.target.value.trim();if(!q)return refreshDiscovery();try{state.locations=await discovery.search(q,100);cache.set(state.locations);await renderer.refresh(context,{skipCore:true})}catch(_){refreshDiscovery()}};
+  controls.querySelector('[data-map-search]').oninput=async e=>{const q=e.target.value.trim();if(!q)return refreshDiscovery();try{state.locations=await discovery.search(q,100);if(!mounted)return;cache.set(state.locations);await renderer.refresh(context,{skipCore:true})}catch(_){if(mounted)refreshDiscovery()}};
   controls.querySelector('[data-map-radius]').onchange=()=>refreshDiscovery({radiusMeters:Number(controls.querySelector('[data-map-radius]').value)*1609.344});
   controls.querySelector('[data-map-type]').onchange=()=>setFilters({placeType:controls.querySelector('[data-map-type]').value||undefined,source:controls.querySelector('[data-map-type]').value==='public'?'osm':undefined,verifiedOnly:false});
   navigationUI=createMapsNavigationUI({root,navigation});
@@ -116,10 +125,9 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   await requestLocationAndRefresh();
   return {destroy};
  }
- function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null;lastDiscoveryPosition=null;queuedRefreshPosition=null;refreshPromise=null}
+ function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();discovery.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null;lastDiscoveryPosition=null;queuedRefreshPosition=null;refreshPromise=null}
  Object.assign(core,{name:'maps',version:'4.0.0',mount,destroy,refreshDiscovery,selectLocation,openRoute,setFilters,state,modules:{location,discovery,cache,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation}});
- return Object.freeze(core);
+ return core;
 }
-function shouldRefreshForPosition(next,previous){const lat=Number(next?.coords?.latitude),lng=Number(next?.coords?.longitude),prevLat=Number(previous?.coords?.latitude),prevLng=Number(previous?.coords?.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return false;if(!Number.isFinite(prevLat)||!Number.isFinite(prevLng))return true;return haversineMeters(lat,lng,prevLat,prevLng)>=250}
-function haversineMeters(lat1,lon1,lat2,lon2){const r=6371000,toRad=v=>v*Math.PI/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(toRad(lon2-lon1)/2)**2;return 2*r*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
-function escapeHtml(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
+function shouldRefreshForPosition(a,b){if(!a)return true;if(!b)return true;const lat1=Number(a.coords?.latitude),lon1=Number(a.coords?.longitude),lat2=Number(b.coords?.latitude),lon2=Number(b.coords?.longitude);if(![lat1,lon1,lat2,lon2].every(Number.isFinite))return true;const r=6371000,toRad=v=>v*Math.PI/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),h=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;return 2*r*Math.atan2(Math.sqrt(h),Math.sqrt(1-h))>=250}
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
