@@ -89,8 +89,9 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 ## 2026-08-16 — Business CRUD authority hardening
 
 - Audited the Business feature registry and found advanced CRUD datasets were registered but did not have a single concrete CRUD authority exposed by the Business Value Core.
-- Added real list/get/create/update/delete operations to `business-value-core.js` for registered CRUD features, including Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs.
+- Added `cores/business/business-crud-core.js` with real list/get/create/update/delete operations for registered CRUD features, including Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs.
 - Enforced business membership, tier entitlement, role restrictions, business scoping, safe dataset/ordering/filter identifiers, mutable-field allowlisting, and record existence checks.
 - Added progression metrics for create/update/delete operations.
 - Kept analytics/status-only registry entries outside arbitrary CRUD.
+- Wired `business-runtime-bridge-v1.js` to expose the canonical Value + CRUD authorities together.
 - Remaining verification: connect each Business UI adapter to these operations and verify corresponding Supabase RLS/schema behavior end-to-end before declaring the Business CRUD gate complete.
