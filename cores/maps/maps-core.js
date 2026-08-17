@@ -18,10 +18,10 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
  if(!root)throw new Error('Maps Core requires a mount root.');
  const db=supabase||window.KleenestSupabaseClient;
  if(!db?.from)throw new Error('Maps Core requires the canonical Supabase client.');
- let mounted=false,renderer=null,navigationUI=null,refreshInFlight=false,lastDiscoveryPosition=null;
+ let mounted=false,renderer=null,navigationUI=null,refreshPromise=null,lastDiscoveryPosition=null;
  const state={locations:[],selectedLocationId:null,filters:{},position:null,permission:'unknown'};
  const progression=createMapsProgression({progressionCore:window.KleenestProgression||null});
- const location=createMapsLocation({onChange:next=>{if(next.position){state.position=next.position;renderer?.updateUserPosition?.(next.position);if(mounted&&!refreshInFlight&&shouldRefreshForPosition(next.position,lastDiscoveryPosition)){refreshDiscovery({position:next.position,recenter:false}).catch(error=>console.warn('[Maps] location-change refresh failed',error))}}if(next.permission)state.permission=next.permission;}});
+ const location=createMapsLocation({onChange:next=>{if(next.position){state.position=next.position;renderer?.updateUserPosition?.(next.position);if(mounted&&!refreshPromise&&shouldRefreshForPosition(next.position,lastDiscoveryPosition)){refreshDiscovery({position:next.position,recenter:false}).catch(error=>console.warn('[Maps] location-change refresh failed',error))}}if(next.permission)state.permission=next.permission;}});
  const discovery=createMapsDiscovery({supabase:db});
  const filters=createMapsFilters({supabase:db});
  const cache=createMapsCache({ttlMs:5*60*1000});
@@ -40,25 +40,27 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   return window.L;
  }
  async function refreshDiscovery(opts={}){
-  if(refreshInFlight)return state.locations;
-  refreshInFlight=true;
-  try{
-   const position=opts.position||state.position||location.get().position;
-   const effectiveFilters={...state.filters,...(opts.filters||{})};
-   state.locations=await discovery.refresh({filters:effectiveFilters,position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
-   state.filters=effectiveFilters;
-   if(position)lastDiscoveryPosition=position;
-   cache.set(state.locations);
-   if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
-   return state.locations;
-  }catch(error){
-   const cached=cache.isFresh()?cache.get():null;
-   if(!Array.isArray(cached))throw error;
-   state.locations=cached;
-   console.warn('[Maps] discovery failed; using fresh cache',error);
-   if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
-   return state.locations;
-  }finally{refreshInFlight=false}
+  if(refreshPromise)return refreshPromise;
+  refreshPromise=(async()=>{
+   try{
+    const position=opts.position||state.position||location.get().position;
+    const effectiveFilters={...state.filters,...(opts.filters||{})};
+    state.locations=await discovery.refresh({filters:effectiveFilters,position,radiusMeters:opts.radiusMeters||16093,limit:opts.limit||200});
+    state.filters=effectiveFilters;
+    if(position)lastDiscoveryPosition=position;
+    cache.set(state.locations);
+    if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
+    return state.locations;
+   }catch(error){
+    const cached=cache.isFresh()?cache.get():null;
+    if(!Array.isArray(cached))throw error;
+    state.locations=cached;
+    console.warn('[Maps] discovery failed; using fresh cache',error);
+    if(renderer)await renderer.refresh({core,modules:core.modules,state,user},{skipCore:true,recenter:Boolean(opts.recenter)});
+    return state.locations;
+   }finally{refreshPromise=null}
+  })();
+  return refreshPromise;
  }
  async function requestLocationAndRefresh(){
   try{await location.request()}catch(_){}
@@ -104,10 +106,10 @@ export async function createMapsCore({root,user=null,supabase=null}={}){
   await requestLocationAndRefresh();
   return {destroy};
  }
- function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null;lastDiscoveryPosition=null}
+ function destroy(){if(!mounted)return;mounted=false;navigation.stop();navigationUI?.destroy?.();renderer?.destroy?.();routes.destroy?.();location.destroy();session.destroy();root.replaceChildren();renderer=null;navigationUI=null;lastDiscoveryPosition=null;refreshPromise=null}
  Object.assign(core,{name:'maps',version:'4.0.0',mount,destroy,refreshDiscovery,selectLocation,openRoute,setFilters,state,modules:{location,discovery,cache,filters,session,renderer,routing,routes,progression,engagement,verification,details,navigation}});
  return Object.freeze(core);
 }
 function shouldRefreshForPosition(next,previous){const lat=Number(next?.coords?.latitude),lng=Number(next?.coords?.longitude),prevLat=Number(previous?.coords?.latitude),prevLng=Number(previous?.coords?.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return false;if(!Number.isFinite(prevLat)||!Number.isFinite(prevLng))return true;return haversineMeters(lat,lng,prevLat,prevLng)>=250}
-function haversineMeters(lat1,lon1,lat2,lon2){const r=6371000,toRad=v=>v*Math.PI/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;return 2*r*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+function haversineMeters(lat1,lon1,lat2,lon2){const r=6371000,toRad=v=>v*Math.PI/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(toRad(lon2-lon1)/2)**2;return 2*r*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 function escapeHtml(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
