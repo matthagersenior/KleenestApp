@@ -135,10 +135,19 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - New Maps graph cache versions: core/location/discovery/cache/session/catalog/verification/engagement/details/filters/renderer/routes/progression `core=10`; navigation/routing `core=8`; navigation UI `core=7`; voice `core=6`; reroute `core=7`; arrival `core=6`.
 - Source commits: renderer hardening `c27e585aad6e6c2cb2e2e9858296006449f665be`; cache-bust shell `1a4db15dc1379591d19fee57e89493ef31c77269`.
 
+## 2026-08-17 — Canonical module lifecycle wiring
+
+- Inspected the authoritative modular branch at `fd84d258f9d8ad647576d68e77dd78314598240d` and found that the newly added canonical module registry/adapter existed but was not loaded by `index.html` and was not used by the v13 shell.
+- Added `core/kleenest-module-registry-v1.js` and `core/kleenest-module-adapter-v1.js` to the canonical bootstrap before product modules load.
+- Routed Home, Maps, Social, Profile, Business, and Admin through the single registry/adapter mount path in `kleenest-modular-shell-v13.js` instead of having the shell directly invoke each surface as its lifecycle boundary.
+- Preserved the existing canonical feature cores and entitlement checks; this pass changes lifecycle ownership, not feature behavior or authorization policy.
+- Added runtime health exposure for the registered module set and advanced shell/module cache keys to prevent stale browser graphs.
+
 ## Verification status
 
 - Static source inspection and committed implementation changes are complete for the batches above.
 - Runtime/browser end-to-end verification remains required for Business CRUD against the deployed schema/RLS contract.
 - Live Supabase SECURITY DEFINER inspection is currently connector-permission constrained and must be resumed with sufficient database inspection privileges.
 - Maps P0 source repair and cache-bust are complete in the authoritative modular source; deployed-device verification remains required.
+- The canonical registry/adapter wiring has been statically verified; browser runtime verification is still required to confirm all six surfaces mount/unmount correctly through the new lifecycle path.
 - A feature is not considered complete merely because it renders or registers; the audit requires real data mutation, authorization, side effects, and refresh behavior.
