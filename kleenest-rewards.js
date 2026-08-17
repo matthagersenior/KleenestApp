@@ -17,6 +17,14 @@
   }
   async function session(){if(!window.KleenestSupabase?.client)throw new Error('Supabase is not ready.');const s=await window.KleenestSupabase.session();if(!s)throw new Error('Please sign in to continue.');return s;}
   window.KleenestRewards.lastCheckIn=function(){try{return JSON.parse(sessionStorage.getItem('kleenest:last-checkin')||'null');}catch(_){return null;}};
+  window.KleenestRewards.award=async function(points,kind,reference){
+    const s=await session();
+    const action=kind==='game'?'game_play':String(kind||'game_play');
+    const {data,error}=await window.KleenestSupabase.client().rpc('record_progression_action',{p_action:action,p_reference_id:null});
+    if(error)throw error;
+    const result=data||{};
+    return publish('game',result,s);
+  };
   window.KleenestRewards.syncCheckin=async function(checkinId){
     if(!checkinId)throw new Error('A check-in ID is required.');const s=await session();
     const {data,error}=await window.KleenestSupabase.client().rpc('checkin_rewards_summary',{p_checkin_id:checkinId});if(error)throw error;
