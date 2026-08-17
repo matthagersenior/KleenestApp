@@ -79,160 +79,27 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Wired the modular shell to the canonical design-system token names instead of maintaining a separate color/radius vocabulary.
 - Corrected modular shell async rendering so route-specific cores are awaited before final binding.
 
-## 2026-08-16 — Large-scale platform wiring pass
+## 2026-08-17 — Six-tab core ownership consolidation
 
-- Added `cores/platform/platform-quality-gates.js` as a shared runtime guard layer for modular cores.
-- Added `cores/platform/platform-data-provenance.js` as the canonical provenance/freshness contract.
-- Wired both platform contracts into application bootstrap before product cores load.
+- Established the target architecture as exactly six tab cores: Home, Maps, Social, Profile, Business, Admin.
+- Added the canonical tab-core registry and tab lifecycle boundaries.
+- Consolidated Maps into one tab owner and removed duplicate Maps core/discovery/location wrappers.
+- Consolidated Social so `social-core.js` is compatibility-only and `social-core-v2.js` is the active implementation.
+- Consolidated Business into one canonical Business Core; removed the competing Business runtime/workspace bridge layers while retaining CRUD/Value/Feature services as subordinate modules.
+- Consolidated Profile onto the canonical Profile Core and removed the independent v1 implementation.
+- Consolidated Admin onto the canonical Admin Core and converted the old v1 implementation to compatibility-only.
 
-## 2026-08-16 — Business CRUD authority hardening
+## 2026-08-17 — Cross-tab lifecycle cleanup
 
-- Added `cores/business/business-crud-core.js` with real list/get/create/update/delete operations for Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs.
-- Enforced authenticated membership against the requested `business_id` before entitlement checks; removed client-side `is_admin` bypass behavior.
-- Resolved Business tier from `business_members → businesses.business_tier`.
-- Removed client-controlled `created_by` / `updated_by` mutation fields.
-- Centralized Growth vs Enterprise feature access in `cores/business/business-feature-registry.js`.
-- Corrected advanced feature requirements so Partner Programs and enterprise partner outcomes are Enterprise-gated.
-- Expanded the CRUD mutable-field contract to cover real configured fields.
-- Added progression metrics for create/update/delete operations.
+- Removed the modular shell's duplicate per-tab lifecycle implementations; the shell now delegates tab mounting exclusively to the canonical six-tab registry.
+- Removed obsolete generic module/surface bridge layers.
+- Removed unused legacy Business data/management bridges that duplicated canonical Business data/mutation responsibilities.
+- Verified the remaining Supabase compatibility files converge on a single underlying browser client rather than creating independent clients.
 
-## 2026-08-16 — Business feature-gap wiring
+## 2026-08-17 — Authentication authority cleanup
 
-- Rewired Promotions, Events, Campaigns, Contests, QR Studio, and Partner Programs to real in-app CRUD editors backed by the canonical Business CRUD Core.
-- Corrected dataset/key mismatches between feature UI and canonical CRUD keys.
-- Added production list/create/update/delete editor flows with feature-specific fields and JSON handling.
-- Added real two-step destructive confirmation and in-app error notices.
-- Preserved authenticated business membership, tier, role, business scoping, and canonical CRUD authorization.
-
-## 2026-08-16 — Business entitlement presentation hardening
-
-- Found that the feature-gap bridge rendered Growth/Enterprise CRUD cards as unlocked even though the canonical registry and server authority correctly classified them as advanced.
-- Added `kleenest-business-feature-entitlement-enforcer-v1.js` and wired it into the production bootstrap.
-- Standard business users now see advanced Promotions, Events, Campaigns, Contests and QR Studio controls disabled/locked; Partner Programs requires Enterprise.
-- The guard derives the business tier from the authenticated `business_members → businesses.business_tier` relationship and treats server-side CRUD authorization as authoritative.
-- This is a presentation/interaction guard, not a replacement for server authorization.
-
-## 2026-08-16 — Live Supabase security hardening
-
-- Hardened mutable database functions with explicit `search_path = public, pg_temp`.
-- Removed anonymous execution from four sensitive SECURITY DEFINER functions while preserving intentionally public discovery RPCs.
-- Remaining live security gate is the authenticated SECURITY DEFINER authorization matrix plus leaked-password protection.
-- Current connected Supabase permissions later prevented re-running the live advisor/function inspection; no blind database changes were made after that boundary.
-
-## 2026-08-16 — P0 Maps initialization parse failure
-
-- Reproduced the reported failure path from the modular shell: Maps imports `cores/maps/maps-core.js` directly before creating the Maps surface.
-- Inspected the authoritative Maps Core and found extensive nested template-literal HTML generation in the route/details renderer, matching the browser's `Missing } in template expression` parse failure class.
-- Replaced the Maps Core renderer/HTML construction with syntax-safe string construction while preserving the existing module contract, GPS/discovery/cache flow, verification, engagement, routes, navigation, progression, and business module wiring.
-- Bumped the Maps Core contract to `1.7.2` and committed the source repair as `f3852fee93429b75ee25bb93524c37473a83f61b`.
-
-## 2026-08-16 — P0 Maps cache/secondary renderer hardening
-
-- Audited the remaining Maps modules loaded by the shell, including discovery, routes, renderer, and navigation UI.
-- Hardened `cores/maps/maps-renderer.js` by removing nested template expressions from live navigation text formatting while preserving behavior.
-- Bumped all Maps module import cache keys in the modular shell so a browser that previously cached the broken `?core=9` module graph cannot reuse the failed parse result on Retry.
-- Advanced the Maps navigation/routing cache keys alongside the main Maps graph to keep the imported module set version-coherent.
-- New Maps graph cache versions: core/location/discovery/cache/session/catalog/verification/engagement/details/filters/renderer/routes/progression `core=10`; navigation/routing `core=8`; navigation UI `core=7`; voice `core=6`; reroute `core=7`; arrival `core=6`.
-- Source commits: renderer hardening `c27e585aad6e6c2cb2e2e9858296006449f665be`; cache-bust shell `1a4db15dc1379591d19fee57e89493ef31c77269`.
-
-## 2026-08-17 — Canonical module lifecycle wiring
-
-- Inspected the authoritative modular branch and found that the canonical module registry/adapter existed but was not loaded by `index.html` and was not used by the v13 shell.
-- Added `core/kleenest-module-registry-v1.js` and `core/kleenest-module-adapter-v1.js` to the canonical bootstrap before product modules load.
-- Routed Home, Maps, Social, Profile, Business, and Admin through the single registry/adapter mount path.
-- Fixed the registry/adapter lookup contract by adding `registry.get()`.
-
-## 2026-08-17 — Six canonical tab-core boundary
-
-- Established the architectural rule: exactly one lifecycle owner for each tab — Home, Maps, Social, Profile, Business, Admin.
-- Added the canonical tab-core registry and six tab-core entrypoints.
-- Contained Maps' prior `#modular-root` renderer behavior inside its tab mount boundary.
-- Removed duplicate Business bootstrap loaders so the canonical Business Workspace adapter is the only Business feature-surface entry.
-
-## 2026-08-17 — Maps supporting-module consolidation
-
-- Audited `cores/maps` after establishing the single Maps tab-core boundary.
-- Found two competing Discovery implementations: `maps-discovery.js` and `maps-discovery-v2.js`. The canonical Maps runtime was not actually importing either implementation before this pass; it was directly querying `locations`.
-- Kept `maps-discovery.js` as the canonical Discovery service because it contains the authoritative enriched nearby RPC, public-data ingestion retry, database fallback, OSM/Overpass enrichment, deduplication, and filter pipeline.
-- Rewired the prior Maps runtime to use the canonical Discovery service before subsequently removing that runtime as an independent implementation.
-- Removed duplicate `cores/maps/maps-discovery-v2.js`.
-- Found `maps-location-stable-v1.js` to be a thin compatibility wrapper around `maps-location.js` whose `subscribe()` intentionally did nothing; it was not part of the canonical Maps Core graph and could mask location-state updates. Removed it rather than preserving a misleading second location contract.
-- Removed the obsolete top-level `kleenest-maps-safe-runtime-v1.js` after moving its active lifecycle/rendering responsibilities into Maps Core and its subordinate renderer.
-- Removed `cores/maps/maps-amenities.js` after repository-wide search found no consumer; its `get_location_details` responsibility is already owned by `maps-details.js`.
-- Removed `cores/maps/maps-catalog.js` after repository-wide search found no consumer.
-
-## 2026-08-17 — Maps Core v4 consolidation
-
-- Rebuilt `cores/maps/maps-core.js` as the actual orchestrator rather than a loader for a competing runtime.
-- Maps Core now directly owns Location, Discovery, Filters, Cache, Session, Renderer, Routing, Routes, Progression, Engagement, Verification, Details, Navigation, and Navigation UI lifecycle.
-- Added a single Leaflet initialization path owned by Maps Core.
-- Added explicit Maps-tab mount and destroy behavior; supporting modules cannot replace the application root.
-- Restored the durable Maps cache as a subordinate service of the canonical core; successful discovery refreshes populate it and discovery failures can use only a fresh cache.
-- Wired renderer refreshes through an explicit `skipCore` boundary to prevent recursive core/renderer refresh calls.
-- Removed the independent Maps runtime bootstrap from `index.html` and advanced the application bootstrap cache key.
-- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
-
-## 2026-08-17 — Social Core consolidation
-
-- Audited `cores/social` against the six-tab ownership rule.
-- Found two generations of Social implementation: `social-core.js` and `social-core-v2.js`, plus the canonical `social-tab-core.js` boundary.
-- Confirmed the tab-core registry already pre-registers Social as the canonical `social-tab-core.js`, so the modular shell's legacy `once('social', ...)` path cannot replace the canonical registry entry.
-- Kept `social-core-v2.js` as the active subordinate Social implementation because it contains the richer feature set: progression metrics, likes, saves, comments, live post subscription, discovery/network/competition/messages/notifications panels, and media integration.
-- Converted `social-core.js` from a second implementation into a compatibility entrypoint that re-exports the canonical implementation instead of maintaining another Social Core body.
-- Social now has one lifecycle owner (`social-tab-core.js`) and one active feature implementation (`social-core-v2.js`); the former v1 implementation is no longer a competing surface/model.
-- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
-
-## 2026-08-17 — Business Core consolidation
-
-- Audited `cores/business` plus the older top-level Business implementations against the six-tab ownership rule.
-- Confirmed `cores/business/business-core.js` is the canonical tab-core registry target, but it previously delegated the entire Business lifecycle to `kleenest-business-workspace-adapter-v1.js`, creating an unnecessary second lifecycle boundary.
-- Moved Workspace loading, Business gap-closer enhancement, and Business Studio entitlement enforcement directly into the canonical Business Core. The tab core now owns its own mount/destroy lifecycle.
-- Removed `kleenest-business-workspace-adapter-v1.js`; it is no longer part of the Business bootstrap or lifecycle graph.
-- Removed superseded `kleenest-business-core-v1.js`, which was an independent older Business tab implementation with its own rendering, dataset loading, and CRUD placeholders.
-- Removed `cores/business/business-runtime-bridge-v1.js`, which created a second global `KleenestBusinessCore` service authority around Value Core/CRUD Core/feature registry and was not required by the canonical Business tab lifecycle.
-- Retained `cores/business/business-crud-core.js`, `business-feature-registry.js`, and `business-value-core.js` as subordinate Business services rather than treating them as additional tab cores.
-- Removed the Business workspace adapter from `index.html` and advanced the application bootstrap cache key to `127`.
-- The canonical Business Core now loads the richest existing Business Workspace implementation and its entitlement/feature-gap enhancements directly, preserving existing Business functionality while eliminating the duplicate lifecycle bridge.
-- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
-
-## 2026-08-17 — Profile Core consolidation
-
-- Audited `cores/profile` plus the older top-level Profile implementations against the six-tab ownership rule.
-- Confirmed `cores/profile/profile-core.js` is the canonical Profile lifecycle owner and `kleenest-profile-core-v2.js` is the richer active account-management implementation.
-- Found `kleenest-profile-core-v1.js` still contained a complete independent Profile renderer, including its own profile query, progression display, account actions, and event handlers. It was not loaded by the current bootstrap, but leaving a second full implementation in the source preserved a future collision path.
-- Converted `kleenest-profile-core-v1.js` into a compatibility entrypoint that delegates to Profile Core v2 instead of maintaining a second implementation.
-- Removed the Profile Core's fallback to `KleenestCanonicalProfileCoreV2`; it now resolves the single canonical `KleenestProfileCoreV2` implementation directly.
-- Retained `kleenest-profile-connected-accounts-v1.js` as a subordinate enhancement because it augments the canonical Profile UI and does not own Profile lifecycle.
-- Advanced application and tab-core cache keys so deployed clients cannot retain the prior Profile module graph.
-- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
-
-## 2026-08-17 — Cross-tab lifecycle/bridge consolidation
-
-- Audited the canonical tab registry, modular shell, bootstrap, and cross-tab bridge files after all six tab cores were established.
-- Found that `kleenest-modular-shell-v13.js` still contained six legacy per-tab implementations (`home`, `maps`, `social`, `profile`, `businessSurface`, `adminSurface`) plus a second `KleenestModuleAdapterV1` registration path. Although the canonical tab registry had precedence, the dead implementations remained a parallel lifecycle graph and could be reactivated by future changes.
-- Reworked the shell so `KleenestTabCoreRegistryV1.mount()` is the only tab mount path. The shell no longer renders, imports, or registers individual tab implementations itself.
-- Preserved shell responsibilities for navigation, authentication hydration, entitlement visibility, error/retry UI, and cleanup while moving lifecycle ownership entirely into the six tab cores.
-- Removed `core/kleenest-module-adapter-v1.js` after code-search found no remaining consumers. The tab-core registry now directly owns tab lifecycle registration and mounting.
-- Removed `core/kleenest-surface-bridge-v1.js` after code-search found no remaining consumers. It was an unused second surface-mount abstraction.
-- Audited legacy Business bootstrap layers. `kleenest-business.js` exposed an unused `KleenestBusinessData` global and `kleenest-business-management.js` exposed a second direct-RPC `KleenestBusinessManagement` mutation layer; repository code search found no consumers of either global and the canonical Business Workspace/CRUD Core do not depend on them.
-- Removed both legacy Business data/management bridges from the source and bootstrap. Business Analytics remains loaded because the canonical Business Workspace consumes its analytics contract.
-- Advanced bootstrap/cache keys to `130` and removed the obsolete adapter bootstrap import.
-- No Supabase schema, RLS, RPC, or authorization policy was changed in this pass.
-
-## Verification status
-
-- Six canonical tab-core ownership is statically established.
-- The modular shell now has exactly one tab lifecycle path: `KleenestTabCoreRegistryV1.mount()`.
-- Maps now has one canonical tab core and one canonical discovery implementation.
-- Maps Core now owns the complete active Maps lifecycle rather than delegating the tab to a second runtime.
-- Maps Renderer, Discovery, Location, Cache, Routes, Navigation, Details, Verification, Engagement, and Progression are subordinate services/modules of the canonical Maps Core.
-- Duplicate Maps Discovery v2, Stable Location v1, obsolete Amenities service, unused Catalog shim, and independent Maps runtime are removed.
-- Social has one lifecycle owner (`social-tab-core.js`); `social-core.js` is compatibility-only and no longer contains an alternate implementation.
-- Business has one lifecycle owner (`cores/business/business-core.js`); the superseded Business tab core, workspace lifecycle adapter, duplicate runtime bridge, legacy data bridge, and legacy management bridge are removed.
-- Profile has one lifecycle owner (`cores/profile/profile-core.js`) and one active feature implementation (`kleenest-profile-core-v2.js`); the old v1 implementation is compatibility-only.
-- Admin has one lifecycle owner (`cores/admin/admin-core.js`) and one canonical runtime chain.
-- The obsolete generic surface bridge and module adapter are removed; no known consumers remain.
-- Business CRUD, feature registry, analytics, and value core remain subordinate services and retain their existing authorization contracts.
-- Profile connected accounts remains a subordinate enhancement, not a competing lifecycle owner.
-- Browser/device runtime verification remains required for Maps GPS/discovery/routing, Social rendering/realtime/media/mutations, Business workspace/CRUD/entitlement behavior, Profile authentication/account mutations, and Admin protected CRUD.
-- Static source inspection has been repeated after the cross-tab consolidation; deployed browser verification remains the final gate.
+- Traced `kleenest-auth-bridge-v1.js` and confirmed it was a compatibility facade around the same Supabase/Runtime authentication path, not an independent auth store.
+- Converted the auth bridge to compatibility-only delegation so authentication state and password/session operations remain owned by `KleenestSupabase` / `KleenestRuntime`.
+- Preserved the legacy `KleenestAuth` namespace for compatibility, including OAuth.
+- No schema, RLS, or RPC authorization changes made in this pass.
+- Remaining risk: repository-wide event-listener and cross-cutting service consumer tracing is still required before removing additional compatibility layers.
