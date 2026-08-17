@@ -16,7 +16,7 @@ export function createBusinessCrudCore({supabase,user=null,valueCore=null}={}){i
   const role=String(data.role||'').toLowerCase();
   const tier=String(data.businesses?.business_tier||'standard').toLowerCase();
   const access=businessFeatureAccess(feature,{tier,role,isAdmin:false});
-  if(!access.allowed)throw new Error(access.reason==='upgrade_required'?'This feature requires a Growth or Enterprise plan.':access.reason==='role_restricted'?'Your business role cannot modify this feature.':'This feature is not available.');
+  if(!access.allowed){if(access.reason==='upgrade_required')throw new Error(`This feature requires a ${access.requiredTier==='enterprise'?'Enterprise':'Growth or Enterprise'} plan.`);if(access.reason==='role_restricted')throw new Error('Your business role cannot modify this feature.');throw new Error('This feature is not available to this business.');}
   if(action!=='read'&&!['owner','admin','manager'].includes(role))throw new Error('Your business role cannot modify this feature.');
   return {allowed:true,role,tier};
  }
