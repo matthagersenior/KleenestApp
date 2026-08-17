@@ -161,12 +161,25 @@ For every audit pass record: date/time, branch/commit, areas inspected, findings
 - Advanced bootstrap cache keys and recorded the canonical tab-core set in runtime identity.
 - The tab-core boundary is now canonical at the lifecycle level. Supporting modules may remain underneath a tab core; they are not independent tab owners.
 
+## 2026-08-17 — Maps core consolidation
+
+- Audited the Maps-specific core boundary before removing implementations.
+- Confirmed `cores/maps/maps-core-safe-v2.js` was not a distinct feature implementation; it was a monkey-patch wrapper around `maps-core.js` that temporarily replaced `Object.freeze` to accommodate the older Maps Core contract.
+- Confirmed the actual deployed shell path was using `kleenest-maps-safe-runtime-v1.js`, while `cores/maps/maps-core.js` was separately implemented and was not the actual renderer being shown to the user. This was a direct source of competing Maps behavior.
+- Made `cores/maps/maps-core.js` the single canonical Maps Core and moved the existing safe renderer/runtime underneath it as a supporting implementation.
+- Changed the renderer to accept an explicit mount root and Supabase client instead of targeting `#modular-root`, eliminating its ability to overwrite the entire application shell.
+- Changed `cores/maps/maps-tab-core.js` into a re-export of the canonical `maps-core.js`, eliminating the second Maps tab-core implementation.
+- Removed `cores/maps/maps-core-safe-v2.js` because its only purpose was to wrap the canonical Maps Core with a temporary global monkey-patch.
+- Preserved the existing Maps supporting modules and data behavior; this pass changes ownership and mounting, not the database model or discovery authority.
+
 ## Verification status
 
 - Static source inspection and committed implementation changes are complete for the batches above.
 - The six tab-core registry is loaded before the shell and registers exactly `home`, `maps`, `social`, `profile`, `business`, and `admin`.
-- Browser runtime verification remains required for all six mount/unmount paths and for Business CRUD against the deployed schema/RLS contract.
-- Maps still contains legacy/versioned supporting implementations; the next cleanup pass must trace every Maps importer and collapse the duplicate implementations into the canonical Maps Core dependency tree before deleting anything.
+- Maps now has one tab-level implementation path: `maps-tab-core.js` → `maps-core.js` → supporting renderer/runtime.
+- The old `maps-core-safe-v2.js` duplicate wrapper is removed.
+- Maps renderer no longer hard-codes `#modular-root`; it receives the tab mount root from the canonical Maps Core.
+- Browser runtime verification remains required for Maps GPS/discovery/refresh behavior and all six mount/unmount paths.
 - Social still contains `social-core.js` and `social-core-v2.js`; the canonical tab boundary now owns the surface, but the implementation generations still need a consolidation pass.
 - Business still contains multiple supporting/value/bridge generations; the canonical tab boundary is established, but duplicate runtime globals/importers need a dependency trace before removal.
 - A feature is not considered complete merely because it renders or registers; the audit requires real data mutation, authorization, side effects, and refresh behavior.
