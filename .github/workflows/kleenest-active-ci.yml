@@ -54,9 +54,20 @@ jobs:
           grep -q 'pricing_authority_v1' kleenest-account-plans-v1.js
           grep -q "code='premium_user'" supabase/migrations/20260817170000_pricing_authority_v1.sql
           grep -q "interval='once'" supabase/migrations/20260817170000_pricing_authority_v1.sql
-      - name: Check Fleet and Admin canonical mounts
+      - name: Check Fleet operational contracts
         run: |
           set -euo pipefail
           grep -q 'fleet_dashboard_summary_v2' kleenest-fleet-workspace-v1.js
+          grep -q 'KleenestFleetWorkspaceV3' kleenest-fleet-workspace-v1.js
+          grep -q 'fleet_set_vehicle_status' kleenest-fleet-workspace-v1.js
+          grep -q 'fleet_set_driver_status' kleenest-fleet-workspace-v1.js
+          grep -q 'fleet_complete_maintenance' kleenest-fleet-workspace-v1.js
+          grep -q 'fleet_resolve_alert' kleenest-fleet-workspace-v1.js
+          grep -q 'fleet_set_route_status' supabase/migrations/20260817183000_fleet_operational_mutations_v1.sql
+          grep -q 'Fleet manager permission required' supabase/migrations/20260817183000_fleet_operational_mutations_v1.sql
+          grep -q 'revoke execute on function public.fleet_actor_is_manager' supabase/migrations/20260817183000_fleet_operational_mutations_v1.sql
+      - name: Check Admin canonical mounts
+        run: |
+          set -euo pipefail
           grep -q 'AdminToolsDashboardV4' kleenest-admin-tools-dashboard-v4.js
           grep -q 'AdminToolsDashboardV4' kleenest-platform-admin-core-v4.js
