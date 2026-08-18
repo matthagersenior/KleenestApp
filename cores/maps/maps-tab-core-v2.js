@@ -1,2 +1,2 @@
-/* Canonical Maps Tab Core — bathroom-first production surface v11. */
-export async function createMapsCore(options={}){const mod=await import('./maps-core-v11.js?maps-production=v11');return mod.createMapsCore(options)}
+/* Canonical Maps Tab Core — bathroom-first production surface v12. */
+export async function createMapsCore(options={}){await import('./maps-core-v12.js?maps-production=v12');const root=options.root;if(!root)throw Error('Maps root missing');return{name:'maps',version:'bathroom-first-v12',state:{},mount:async function(){this.state=await window.KleenestCanonicalMapsV12.mount(root);return this},destroy:function(){if(this.state?.map)this.state.map.remove();root.replaceChildren()}}}
