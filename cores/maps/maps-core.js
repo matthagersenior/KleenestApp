@@ -13,4 +13,4 @@ function mount(root){style();return leaflet().then(function(){root.innerHTML='<d
 g.KleenestCanonicalMapsV9={mount:mount};g.KleenestCanonicalMapsV8=g.KleenestCanonicalMapsV9;g.KleenestCanonicalMaps=g.KleenestCanonicalMapsV9;
 })(window);
 
-export async function createMapsCore(options={}){var api=g.KleenestCanonicalMapsV9;var root=options.root;if(!api||!root)throw new Error('Recovered Maps surface is unavailable.');var state=null;return {name:'maps',version:'recovered-v7',state:{},mount:async function(){state=await api.mount(root);this.state=state;return this},destroy:function(){if(state&&state.map){state.map.remove()}if(root)root.replaceChildren()}}}
+export async function createMapsCore(options={}){var api=window.KleenestCanonicalMapsV9;var root=options.root;if(!api||!root)throw new Error('Recovered Maps surface is unavailable.');var state=null;return {name:'maps',version:'recovered-v7',state:{},mount:async function(){state=await api.mount(root);this.state=state;return this},destroy:function(){if(state&&state.map){state.map.remove()}if(root)root.replaceChildren()}}}
