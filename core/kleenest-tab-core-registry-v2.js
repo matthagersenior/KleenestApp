@@ -1,2 +1,2 @@
-/* Compatibility facade. Canonical Tab Core Registry is v1. This file must not replace or fork it. */
-(function(g){'use strict';if(!g.KleenestTabCoreRegistryV1)return;g.KleenestTabCoreRegistryV2=g.KleenestTabCoreRegistryV1;})(window);
+/* Compatibility facade + surface enhancement loader. Canonical Tab Core Registry remains v1. */
+(function(g){'use strict';if(!g.KleenestTabCoreRegistryV1)return;g.KleenestTabCoreRegistryV2=g.KleenestTabCoreRegistryV1;function load(){if(g.KleenestSurfaceEnhancementsV1)return;var s=document.createElement('script');s.src='../kleenest-surface-enhancements-v1.js?surface=2';s.async=false;s.onload=function(){};s.onerror=function(e){console.warn('[Kleenest] surface enhancements failed to load',e)};document.head.appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();})(window);
