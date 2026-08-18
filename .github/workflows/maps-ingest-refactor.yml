@@ -1,0 +1,32 @@
+name: Kleenest canonical maps ingestion
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ingest launch markets
+        env:
+          SUPABASE_URL: https://ssgesjzdvdsqacdtasje.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ANON_KEY"
+          endpoint="$SUPABASE_URL/functions/v1/maps-ingest"
+          ingest() {
+            name="$1"; south="$2"; west="$3"; north="$4"; east="$5"
+            echo "Ingesting $name: [$south,$west,$north,$east]"
+            curl --fail-with-body --retry 3 --retry-delay 5 --max-time 180 \
+              -X POST "$endpoint" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -H "Content-Type: application/json" \
+              --data "{\"bbox\":[$south,$west,$north,$east]}"
+            echo
+          }
+          ingest "St. Louis" 38.30 -90.80 38.90 -89.80
+          ingest "Kansas City" 38.75 -95.00 39.50 -94.10
