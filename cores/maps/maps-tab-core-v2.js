@@ -1,2 +1,2 @@
-/* Canonical Maps Tab Core v6 — Maps Core is the sole active surface authority. */
-export async function createMapsCore(options={}){const mod=await import('./maps-core.js?maps-core=13');return mod.createMapsCore(options)}
+/* Canonical Maps Tab Core — recovered Maps surface from 7e2f5bb with cache-busted recovery revision. */
+export async function createMapsCore(options={}){const mod=await import('./maps-core.js?maps-recovery=7e2f5bb-v2');return mod.createMapsCore(options)}
