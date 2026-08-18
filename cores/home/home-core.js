@@ -2,15 +2,20 @@
 export function createHomeCore({root,user=null}={}){
  if(!root)throw new Error('Home Core requires a mount root.');
  async function mount(){
-  /* The modular shell is the sole page owner. The legacy preloaded home bridge may
-     expose the richer Home surface as KleenestHomeV3; use it here so the shell,
-     tab registry and Home cannot render competing pages. */
+  if(root.__kleenestHomeOwner){root.__kleenestHomeOwner.destroy?.();root.replaceChildren();}
+  root.__kleenestHomeOwner={destroy(){}};
   const rich=window.KleenestHomeV3;
-  const core=window.KleenestHomeCoreV1;
-  if(rich?.render)return rich.render(root,user);
-  if(core?.render)return core.render(root,user);
-  throw new Error('Canonical Home implementation unavailable.');
+  if(!rich?.render)throw new Error('Canonical rich Home implementation unavailable.');
+  await rich.render(root,user);
+  const owner=root.__kleenestHomeOwner;
+  owner.destroy=function(){
+   if(root.__kleenestHomeOwner===owner){root.replaceChildren();delete root.__kleenestHomeOwner;}
+  };
+  return owner;
  }
- function destroy(){root.replaceChildren();}
- return Object.freeze({name:'home',version:'canonical-v2-rich',mount,destroy});
+ function destroy(){
+  if(root.__kleenestHomeOwner?.destroy)root.__kleenestHomeOwner.destroy();
+  else root.replaceChildren();
+ }
+ return Object.freeze({name:'home',version:'canonical-v3-sole-owner',mount,destroy});
 }
