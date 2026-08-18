@@ -11,13 +11,10 @@
 #modular-root{min-height:100vh}.boot{margin:16px auto;max-width:1180px;background:#fff;border:1px solid var(--line);border-radius:17px;padding:18px}.boot button{border:0;border-radius:12px;padding:10px 14px;background:#0e7c6b;color:#fff;font-weight:800}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="supabase-client.js?boot=20260817-2"></script>
-<script src="kleenest-map-preloader.js?boot=20260817-2"></script>
-<script src="kleenest-supabase-runtime.js?boot=20260817-2"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-client.js"></script>
-<script src="kleenest-supabase-runtime.js"></script>
+<script src="supabase-client.js?boot=20260818-1"></script>
+<script src="kleenest-map-preloader.js?boot=20260818-1"></script>
+<script src="kleenest-supabase-runtime.js?boot=20260818-1"></script>
+<script src="kleenest-qr.js?boot=20260818-1"></script>
 <script src="kleenest-actions.js"></script>
 <script src="kleenest-rewards.js"></script>
 <script src="kleenest-rewards-history.js"></script>
@@ -43,7 +40,7 @@
     root.innerHTML='<section class="boot"><h1>Kleenest</h1><p>The app shell failed to start.</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+String(e&&e.stack||e&&e.message||e||'Unknown error').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</pre><button onclick="location.reload()">Retry</button></section>';
   }
   var s=document.createElement('script');
-  s.src='kleenest-app-shell-v72.js?shell=74-'+Date.now();
+  s.src='kleenest-app-shell-v72.js?shell=75-'+Date.now();
   s.async=false;
   s.onload=function(){
     if(!window.KleenestAppShellV72) return showError(new Error('Authoritative app shell loaded but did not register.'));
